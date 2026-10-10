@@ -1,0 +1,19 @@
+name = "joey-ask"
+main = "joey-ask.js"
+compatibility_date = "2026-01-01"
+
+# Workers AI. The binding is the credential, so no API key ever reaches the page.
+[ai]
+binding = "AI"
+
+# Per-visitor rate limiting. Uncomment to use Cloudflare's own limiter, which is the real guard;
+# without it the worker falls back to an in-isolate counter (see `allow` in joey-ask.js), which
+# is only a speed bump. The syntax for this binding has changed between wrangler versions — if
+# `wrangler deploy` rejects it, check the current form in Cloudflare's rate limiting docs rather
+# than guessing. The worker deploys fine with this left commented out.
+#
+# [[unsafe.bindings]]
+# name = "RATE_LIMITER"
+# type = "ratelimit"
+# namespace_id = "1001"
+# simple = { limit = 15, period = 60 }

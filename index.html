@@ -1,12 +1,159 @@
----
-layout: default
-title: Joey Paul
----
-
-<div class="content">
-  {% include aboutme.html %}
-  {% include projects.html %}
-  {% include experience.html %}
-  <!-- {% include skills.html %} -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Joey — Computer Science & Math</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Instrument+Sans:wght@400;500&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="sky" role="img" aria-label="An interactive 3D orbit. Drag to rotate. Each orbiting label opens a page."></canvas>
+<button id="top" class="pad hide">← Back to orbit</button>
+<button id="theme" type="button" aria-pressed="false" aria-label="Switch to dark mode">
+  <svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.3"/><path d="M12 2.6v2.6M12 18.8v2.6M2.6 12h2.6M18.8 12h2.6M5.4 5.4l1.8 1.8M16.8 16.8l1.8 1.8M18.6 5.4l-1.8 1.8M7.2 16.8l-1.8 1.8"/></svg>
+  <svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.1 14.3A8.2 8.2 0 0 1 9.7 3.9a8.4 8.4 0 1 0 10.4 10.4z"/></svg>
+</button>
+<div id="intro" class="pad">
+  <h1 class="r">Hi, I'm Joey.</h1>
+  <p class="r big" style="--i:1">I'm <span id="cyc">a student of computer science and math.</span></p>
+  <p class="r dim" style="--i:2">Drag to rotate. Click a label in orbit to open it, or catch the ship to fly.</p>
 </div>
-
+<main id="panel" class="pad">
+  <!-- About is the one page laid out as two columns: the summary on the left, and on the right
+       a small model (ask.js) that answers questions from profile.js. Because it needs the width,
+       it folds the landscape into the corner globe the same way a sub-page does. -->
+  <section id="about">
+    <div class="bio">
+      <h2 class="r">About</h2>
+      <p class="r lede" style="--i:1">I'm a computer science and math student at Texas A&amp;M. I build iOS and React Native apps, and I spend most of my time on machine learning and quantitative research.</p>
+      <dl class="facts">
+        <div class="r" style="--i:2"><dt>Studying</dt><dd>B.S. Computer Science, minor in Mathematics · Texas A&amp;M · May 2029</dd></div>
+        <div class="r" style="--i:3"><dt>Now</dt><dd>Portfolio Manager, Sinn Fund · College Station, Texas</dd></div>
+        <div class="r" style="--i:4"><dt>Before</dt><dd>ML and backend at Pathlight Project · Co-Director of the Maroon Fund quant desk</dd></div>
+        <div class="r" style="--i:5"><dt>Building</dt><dd>A satellite collision-risk model on ESA's Kelvins data</dd></div>
+        <div class="r" style="--i:6"><dt>Working in</dt><dd>Swift, React Native, TypeScript, Python, machine learning</dd></div>
+        <div class="r" style="--i:7"><dt>Looking for</dt><dd>Internships and research roles</dd></div>
+      </dl>
+    </div>
+    <div class="askp">
+      <h2 class="r" style="--i:1">Ask Joey</h2>
+      <p class="r dim note" style="--i:2">A small model that answers from what Joey has actually written down — and tells you when he hasn't.</p>
+      <div id="asklog" role="log" aria-live="polite" aria-label="Answers"></div>
+      <ul id="askcues" class="cues"></ul>
+      <form id="askform" autocomplete="off">
+        <input id="askq" type="text" placeholder="Ask about Joey&#8230;" aria-label="Ask a question about Joey" maxlength="300">
+        <button type="submit" aria-label="Ask">&#8594;</button>
+      </form>
+    </div>
+  </section>
+  <section>
+    <h2 class="r">Projects</h2>
+    <article class="r" style="--i:1">
+      <h3>Satellite collision-risk prediction <small>Python, machine learning · in progress</small></h3>
+      <p>Predicting how the risk of a close approach evolves, using ESA's Kelvins Collision Avoidance Challenge data. <a href="#">Repository</a></p>
+      <canvas id="mini" aria-hidden="true"></canvas>
+      <p id="read" aria-hidden="true">Separation</p>
+    </article>
+    <article class="r" style="--i:2">
+      <h3>Your app name here <small>Swift, React Native</small></h3>
+      <p>Replace this with an app you built: what it does and a link. <a href="#">Open</a></p>
+    </article>
+  </section>
+  <!-- Experience is third here because it is third in M (script.js); its orbit sits second from the sun.
+       Each role is a sub-page: .sub articles swap in for #xp-list inside this section.
+       To add a photo, replace a <div class="ph"> with <img src="images/…" alt="…">; it takes the same 3:2 frame. -->
+  <section>
+    <div id="xp-list">
+      <h2 class="r">Experience</h2>
+      <ul class="xp">
+        <li class="r" style="--i:1"><button type="button" data-role="sinn">Sinn Fund<span>Portfolio Manager · 2026 to present</span></button></li>
+        <li class="r" style="--i:2"><button type="button" data-role="pathlight">Pathlight Project<span>Machine Learning and Backend Engineer · Summer 2026</span></button></li>
+        <li class="r" style="--i:3"><button type="button" data-role="maroon">Maroon Fund<span>Co-Director, Quant Trading Desk · 2025 to 2026</span></button></li>
+      </ul>
+    </div>
+    <article class="sub" id="xp-sinn" hidden>
+      <button type="button" class="crumb r" data-role="">← Experience</button>
+      <h2 class="r" style="--i:1" tabindex="-1">Sinn Fund</h2>
+      <p class="r role" style="--i:2">Portfolio Manager</p>
+      <p class="r meta" style="--i:2">College Station, Texas · May 2026 to present</p>
+      <div class="body">
+        <p class="r" style="--i:3">I'm a portfolio manager at Sinn Fund, which manages $10–15M in assets.</p>
+        <p class="r" style="--i:4">I was selected after rigorous interview cycles, and I was promoted to portfolio manager in my first semester.</p>
+        <figure class="shot r" style="--i:5"><div class="ph" role="img" aria-label="Photo to come"></div><figcaption>Sinn Fund, College Station</figcaption></figure>
+        <p class="r" style="--i:6">My work is research. I study quantitative trading strategies, testing them across multiple years of backtests to optimize returns.</p>
+      </div>
+      <p class="r tags" style="--i:7">Finance · Python · Quantitative research · Market analysis</p>
+      <p class="r next" style="--i:8"><button type="button" data-role="pathlight">Next: Pathlight Project →</button></p>
+    </article>
+    <article class="sub" id="xp-pathlight" hidden>
+      <button type="button" class="crumb r" data-role="">← Experience</button>
+      <h2 class="r" style="--i:1" tabindex="-1">Pathlight Project</h2>
+      <p class="r role" style="--i:2">Machine Learning and Backend Engineer</p>
+      <p class="r meta" style="--i:2">San Francisco, California · May to August 2026</p>
+      <div class="body">
+        <p class="r" style="--i:3">Pathlight builds PATH, a voice-first assistant for blind and low-vision people. You speak naturally, and it reads, summarizes, searches, drafts and replies to email and manages your calendar across Gmail, Outlook, Google Calendar and iCloud Mail, without navigating every screen by hand.</p>
+        <p class="r" style="--i:4">The company was founded by Ariyan Patel of Yale and Kushal Patel and Ronak Saramya of Stanford. It began as a wearable navigation device and grew into software, and its features are co-designed and tested with blind and low-vision users.</p>
+        <figure class="shot r" style="--i:5"><div class="ph" role="img" aria-label="Photo to come"></div><figcaption>Yale Hacker House, San Francisco</figcaption></figure>
+        <p class="r" style="--i:6">I spent the summer with the team in the Yale Hacker House in San Francisco. My main work was the harness behind the assistant: the system that takes what someone says, works out the task, and carries it through with low latency and high accuracy.</p>
+        <p class="r" style="--i:7">I worked on the system's architecture and fine-tuned language models to improve their performance, efficiency and accuracy.</p>
+        <p class="r" style="--i:8">Accuracy matters more when you can't check the screen. Before PATH sends or changes anything important, it reads back the key details, and when a request is unclear it asks instead of guessing.</p>
+        <figure class="shot r" style="--i:9"><div class="ph" role="img" aria-label="Photo to come"></div><figcaption>PATH on iPhone</figcaption></figure>
+        <p class="r" style="--i:10">I also built UI features for both the mobile and desktop apps, designed around a blind and low-vision audience.</p>
+        <p class="r" style="--i:11">The company is now in the process of being sold. <a href="https://www.pathlightproj.com/">pathlightproj.com</a></p>
+      </div>
+      <p class="r tags" style="--i:12">LLM tuning · Data engineering · Machine learning</p>
+      <p class="r next" style="--i:13"><button type="button" data-role="maroon">Next: Maroon Fund →</button></p>
+    </article>
+    <article class="sub" id="xp-maroon" hidden>
+      <button type="button" class="crumb r" data-role="">← Experience</button>
+      <h2 class="r" style="--i:1" tabindex="-1">Maroon Fund</h2>
+      <p class="r role" style="--i:2">Co-Director of the Quant Trading Desk and Quantitative Analyst</p>
+      <p class="r meta" style="--i:2">College Station, Texas · August 2025 to May 2026</p>
+      <div class="body">
+        <p class="r" style="--i:3">Maroon Fund is the fastest-growing investment fund at Texas A&amp;M. I earned my position through rigorous application and interview cycles.</p>
+        <p class="r" style="--i:4">On the quant trading desk, I worked on multiple models built on dip-detection strategies and machine learning.</p>
+        <figure class="shot r" style="--i:5"><div class="ph" role="img" aria-label="Photo to come"></div><figcaption>Maroon Fund, Texas A&amp;M</figcaption></figure>
+        <p class="r" style="--i:6">As co-director, I oversaw all of the desk's analysts to make sure the models held up, and I managed the desk.</p>
+      </div>
+      <p class="r tags" style="--i:7">Financial modeling · Python · Data structures and algorithms · Market trends · XGBoost · Machine learning</p>
+      <p class="r next" style="--i:8"><button type="button" data-role="sinn">Next: Sinn Fund →</button></p>
+    </article>
+  </section>
+  <section>
+    <h2 class="r">Skills</h2>
+    <ul class="skl">
+      <li class="r" style="--i:1">Swift<span>iOS native modules and app code.</span></li>
+      <li class="r" style="--i:2">React Native<span>Cross-platform mobile apps.</span></li>
+      <li class="r" style="--i:3">TypeScript<span>Typed JavaScript for app code.</span></li>
+      <li class="r" style="--i:4">Python<span>Experiments, data work, and model training.</span></li>
+      <li class="r" style="--i:5">Machine learning<span>Prediction models, currently applied to collision risk.</span></li>
+      <li class="r" style="--i:6">AI-assisted development<span>Exploring how AI fits into building software.</span></li>
+    </ul>
+  </section>
+  <section>
+    <h2 class="r">Contact</h2>
+    <p class="r" style="--i:1"><a href="mailto:you@example.com">you@example.com</a></p>
+    <p class="r dim gap" style="--i:2"><a href="#">GitHub</a> and <a href="#">LinkedIn</a></p>
+  </section>
+</main>
+<p id="tip" class="hide">Choose a planet in the sky to keep exploring.</p>
+<div id="flight" tabindex="-1" role="application" aria-label="Flight, a small game. Steer Starship through the belt." hidden>
+  <canvas id="fcv" aria-hidden="true"></canvas>
+  <button id="fback" class="pad" type="button">← Back to orbit</button>
+  <div id="fscores" aria-hidden="true"><p id="fscore">0</p><p id="fbest" class="dim">Best 0</p></div>
+  <div id="froute"><span id="fname" class="dim"></span><i><b id="fbar"></b></i></div>
+  <div id="fstat" class="pad"><div id="fhull" role="img" aria-label="Hull 3 of 3"><i></i><i></i><i></i></div><i id="fboostline"><b id="fboostbar"></b></i></div>
+  <button id="fboost" type="button">Boost</button>
+  <div id="fcard" class="pad hide" aria-live="polite"></div>
+</div>
+<script src="game.js"></script>
+<script src="script.js"></script>
+<!-- The About page's model: facts, the engine that reads them, and the panel. -->
+<script src="profile.js"></script>
+<script src="ask.js"></script>
+<script src="ask-ui.js"></script>
+<!-- Development shortcuts; remove this line or set DEV=false in dev.js before shipping. -->
+<script src="dev.js"></script>
+</body>
+</html>
