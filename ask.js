@@ -30,6 +30,12 @@ var Ask = (function (Profile) {
   */
   var PROXY = "", TIMEOUT = 6000;
 
+  /* ── Or a language model in the tab ────────────────────────────────────────────────
+     ask-llm.js can load a small model that runs on this device's GPU (opt-in, cached after
+     the first download) and register it here as PHRASE(question, facts, onText). It takes
+     precedence over PROXY and is held to exactly the same rules below. */
+  var PHRASE = null, PHRASE_NAME = "";
+
   /* ── 1. Normalise ──────────────────────────────────────────────────────────────── */
 
   /* Written-down-fast spellings, expanded before anything else looks at the words. */
@@ -339,6 +345,18 @@ var Ask = (function (Profile) {
 
     /* "Tell me about yourself" carries no searchable term at all — every word is a stopword.
        Broad and self-referential means the overview, not a failed search. */
+    /* "Where are you from" is all stopwords too, but it is one fact's own phrase, not a request
+       for the overview: an exact phrase match on any other fact answers from that fact. */
+    var phrased = !content.length && facts.filter(function (f) {
+      return !f.pending && f.id !== "who" && f.phrases &&
+        f.phrases.split("|").some(function (p) { return p && raw.indexOf(p) >= 0; });
+    })[0];
+    if (phrased) {
+      state.topic = phrased.topic; state.fact = phrased.id;
+      if (state.asked.indexOf(phrased.id) < 0) state.asked.push(phrased.id);
+      return reply(realize(phrased, intent, state, content, raw),
+        { fact: phrased.id, confidence: 1, related: related(phrased, intent, state) });
+    }
     if (!content.length && selfRef && intent !== "meta") {
       state.topic = "me"; state.fact = "who";
       return reply(overview(), { fact: "who", confidence: 1, related: cueList(state.asked).slice(0, 3) });
@@ -351,7 +369,15 @@ var Ask = (function (Profile) {
     }
 
     if (intent === "meta") {
-      return reply(PROXY ? [
+      return reply(PHRASE ? [
+        { kind: "p", text: "Two models, both on your device, and the small one is in charge. A few " +
+          "hundred lines of JavaScript read your question and pick the facts Joey wrote that cover " +
+          "it; a " + PHRASE_NAME + " language model running on this device's GPU words the reply from " +
+          "just those. Nothing you type leaves this tab." },
+        { kind: "p", soft: 1, text: "It never sees a question he hasn't answered, it never gets more " +
+          "than the few facts retrieved, and if it writes a figure that isn't in them you get the " +
+          "locally written answer instead." }
+      ] : PROXY ? [
         { kind: "p", text: "Two models, and the small one is in charge. A few hundred lines of " +
           "JavaScript in this tab read your question, pick the facts Joey wrote that cover it, and " +
           "hand just those to a hosted language model to word the reply." },
@@ -462,6 +488,8 @@ var Ask = (function (Profile) {
 
   function configure(options) {
     if (options && typeof options.proxy === "string") PROXY = options.proxy;
+    if (options && "phrase" in options) { PHRASE = typeof options.phrase === "function" ? options.phrase : null;
+      PHRASE_NAME = PHRASE ? String(options.name || "small") : ""; }
     if (options && options.timeout) TIMEOUT = options.timeout;
     return PROXY;
   }
@@ -506,25 +534,57 @@ var Ask = (function (Profile) {
     });
   }
 
-  /* What the panel calls. Resolves to a reply whether or not a proxy is configured. */
-  function respond(question) {
+  /* A 0.5B model will sometimes drift into a plausible paragraph of its own: in testing it
+     described the Sinn Fund as "a financial institution… founded by its founder", true to
+     nothing Joey wrote. Two more checks catch that drift. The reply must speak as Joey, and
+     nearly every content word in it must come from the facts, the question or the local draft. */
+  function faithful(text, source, question, draft) {
+    if (!/\b(i|i'm|im|i've|ive|my|me)\b/i.test(text)) return false;
+    var known = {};
+    terms([source, question, draft].join(" ")).forEach(function (t) { known[t] = 1; });
+    var said = terms(text), novel = said.filter(function (t) { return !known[t]; });
+    return novel.length <= Math.max(2, Math.floor(said.length * 0.2));
+  }
+
+  function plain(reply) {
+    return reply.blocks.map(function (b) { return b.text || (b.items || []).join("; "); }).join(" ")
+      .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1");
+  }
+
+  /* The on-device model rewrites the locally built answer from the same few facts, rather than
+     composing freely, and is held to the hosted model's checks plus faithful(). onText, if
+     given, receives the reply as it is written; the panel waits for the checked result. */
+  function device(question, picked, onText, local) {
+    var source = picked.map(context).join("\n\n"), draft = plain(local);
+    return Promise.resolve(PHRASE(question, source, onText, draft)).then(function (text) {
+      text = String(text || "").trim();
+      if (text.length < 8 || text.length > 600) throw new Error("length");
+      if (!grounded(text, source)) throw new Error("ungrounded");
+      if (!faithful(text, source, question, draft)) throw new Error("unfaithful");
+      return text;
+    });
+  }
+
+  /* What the panel calls. Resolves to a reply whether or not a model is configured. */
+  function respond(question, onText) {
     var local = answer(question), f = local.fact && byId(local.fact);
-    if (!PROXY || !f || f.pending) return Promise.resolve(local);
+    if ((!PROXY && !PHRASE) || !f || f.pending) return Promise.resolve(local);
     var scored = rank(terms(question).join(" "), String(question).toLowerCase(), "describe", state);
     var floor = Math.max(WEAK, (scored[0] ? scored[0].score : 0) * .6);
     var picked = [f].concat(scored.filter(function (s) {
       return s.fact !== f && !s.fact.pending && s.score >= floor;
     }).slice(0, 2).map(function (s) { return s.fact; }));
-    return remote(question, picked)
+    return (PHRASE ? device(question, picked, onText, local) : remote(question, picked))
       .then(function (text) {
         return { blocks: [{ kind: "p", text: text }], related: local.related, fact: local.fact,
-          confidence: local.confidence, source: "remote" };
+          confidence: local.confidence, source: PHRASE ? "device" : "remote" };
       })
       .catch(function () { return local; });
   }
 
   return { answer: answer, respond: respond, follow: follow, reset: reset, cues: cueList,
-    facts: all, configure: configure, grounded: grounded, proxy: function () { return PROXY; },
+    facts: all, configure: configure, grounded: grounded, faithful: faithful, proxy: function () { return PROXY; },
+    device: function () { return PHRASE_NAME; },
     _: { terms: terms, stem: stem, canon: canon, intentOf: intentOf, rank: rank, state: function () { return state; } } };
 })(typeof Profile !== "undefined" ? Profile : require("./profile.js"));
 

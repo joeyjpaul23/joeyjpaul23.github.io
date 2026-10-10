@@ -16,7 +16,7 @@ var Profile = (function () {
   var me = {
     name: "Joey",
     full: "Joel Paul",
-    email: "you@example.com",          /* TODO replace with your real address (also in index.html) */
+    email: "joeyjpaul@tamu.edu",
     site: "this site"
   };
 
@@ -29,11 +29,11 @@ var Profile = (function () {
       phrases: "about yourself|about you|about joey|who are you|introduce",
       keys: "who you name yourself introduce introduction about bio background story person",
       subject: "who I am",
-      value: "Joel Paul — I go by Joey. I'm a computer science and math student who builds " +
-             "iOS and React Native apps, and I spend most of my time on machine learning and quantitative research",
+      value: "Joel Paul — I go by Joey. I'm a computer science and math student at Texas A&M, and I spend " +
+             "most of my time on quantitative research and machine learning",
       where: "College Station, Texas",
-      more: "Right now that splits three ways: a satellite collision-risk model, a portfolio manager seat at Sinn Fund, " +
-            "and whatever I'm building on the side"
+      more: "Right now that splits two ways: a portfolio manager seat at Sinn Fund, and a multi-agent " +
+            "collision-avoidance algorithm for spacecraft"
     },
     {
       id: "study", kind: "fact", topic: "school", summary: 1,
@@ -46,7 +46,33 @@ var Profile = (function () {
       when: "I'm expected to graduate in May 2029",
       where: "Texas A&M, in College Station",
       why: "Computer science is the part I build with and math is the part that makes the models honest — " +
-           "the collision-risk work needs both"
+           "the collision-avoidance work needs both",
+      more: "Coursework so far includes Program Design and Concepts, Data Structures and Algorithms, Discrete " +
+            "Mathematics, Linear Algebra, Calculus III, Principles of Statistics and Computer Organization"
+    },
+    {
+      id: "honors", kind: "list", topic: "school",
+      phrases: "scholarship|scholarships|awards|honors|national merit|act score",
+      keys: "honor honors award awards scholar scholarship scholarships national merit finalist act score " +
+            "presidential volunteer service achievement achievements summa cum laude",
+      subject: "honors", frame: "My honors include {value}.",
+      list: ["President's Endowed Scholar and National Scholar at Texas A&M",
+             "National Merit Finalist and Presidential Scholar nominee",
+             "A 36 on the ACT",
+             "The President's Volunteer Service Award, Gold, in 2025",
+             "Summa cum laude at Memphis University School"],
+      value: "President's Endowed Scholar and National Scholar at Texas A&M, National Merit Finalist, and a 36 on the ACT"
+    },
+    {
+      id: "highschool", kind: "fact", topic: "school",
+      intents: "what where when",
+      phrases: "high school|where did you go to school before",
+      keys: "high highschool secondary memphis mus nhs",
+      subject: "high school",
+      value: "I went to Memphis University School, class of 2025, summa cum laude",
+      where: "Memphis, Tennessee",
+      when: "August 2021 to May 2025",
+      more: "I was a National Merit Finalist and in the National Honor Society there"
     },
     {
       id: "where-live", kind: "place", topic: "location",
@@ -119,17 +145,32 @@ var Profile = (function () {
     /* Projects. */
     {
       id: "satellite", kind: "project", topic: "projects", summary: 1,
-      intents: "what how why when",
+      intents: "what how why when where",
       phrases: "working on|work on|current project|these days|latest project|building now",
-      keys: "satellite satellites collision conjunction risk space orbit orbital debris kelvins esa challenge " +
-            "project building current now working model prediction predict machine learning python close approach",
-      subject: "the satellite collision-risk model",
-      value: "I'm predicting how the risk of a close approach between two objects in orbit evolves as the encounter gets nearer",
-      how: "Python and machine learning, trained on ESA's Kelvins Collision Avoidance Challenge data",
-      why: "A conjunction warning days out is mostly noise, and the useful question is whether the risk is going to " +
-           "hold or fall away by the time you'd have to burn fuel to move",
-      when: "It's what I'm working on now",
-      more: "There's a live demo of the close-approach geometry on [the Projects planet](#page:Projects)"
+      keys: "satellite satellites spacecraft collision avoidance avoid conjunction space orbit orbital maneuver maneuvers " +
+            "multi agent multiagent pomdp sdec policy search planning simulation communication coordination " +
+            "project building current now working algorithm close approach",
+      subject: "the satellite collision-avoidance algorithm",
+      value: "I'm building an independent implementation of multi-agent collision avoidance for spacecraft that can " +
+             "only communicate intermittently",
+      how: "I'm building a simulation environment to study orbital maneuvers, partial information and coordination " +
+           "between spacecraft, and investigating SDec-POMDP-based planning and policy search, with evaluation planned " +
+           "against centralized and decentralized strategies",
+      why: "Spacecraft can't always talk to each other, so each one has to decide how to move with only part of the picture",
+      when: "Since August 2026 — it's what I'm working on now",
+      where: "It started as a summer project in Memphis",
+      more: "There's a live demo of close-approach geometry on [the Projects planet](#page:Projects)"
+    },
+    {
+      id: "hrt", kind: "project", topic: "projects",
+      intents: "what when who how",
+      phrases: "hudson river|hrt|puzzle competition|competition",
+      keys: "hudson river trading hrt puzzle puzzles competition contest aggie coding club team place placed fifth 5th math",
+      subject: "the Hudson River Trading puzzle competition",
+      value: "My team placed 5th in a Hudson River Trading puzzle competition, out of more than 30 teams and 200 people",
+      when: "February 2026",
+      who: "We entered with Aggie Coding Club",
+      how: "Teams solved puzzles through math and creative thinking; we solved 5 of them"
     },
     {
       id: "site", kind: "project", topic: "projects",
@@ -161,16 +202,15 @@ var Profile = (function () {
     {
       id: "skills", kind: "list", topic: "skills", summary: 1,
       keys: "skill skills tech technology stack language languages programming code coding tool tools framework " +
-            "good at proficient swift react native typescript python javascript pandas",
+            "good at proficient python c++ cpp sql java javascript js react html css tailwind linux fortran latex power bi",
       subject: "what I work in", frame: "I work mostly in {value}.",
-      list: ["Swift — iOS native modules and app code",
-             "React Native and TypeScript — cross-platform mobile",
-             "Python — experiments, data work and model training",
-             "Machine learning — prediction models, currently applied to collision risk",
-             "XGBoost and backtesting, from the trading desks",
-             "AI-assisted development — I'm still working out where it actually helps"],
-      value: "Swift, React Native, TypeScript, Python, and machine learning",
-      more: "The finance work added XGBoost, backtesting and a lot of time in pandas"
+      list: ["Python — quantitative research, backtesting and machine learning",
+             "Machine learning — XGBoost, LLM fine-tuning and data engineering",
+             "C++, Java and SQL",
+             "JavaScript, React, HTML/CSS and Tailwind",
+             "Linux, Fortran 95, Power BI, LaTeX and Office"],
+      value: "Python, C++, SQL, Java and machine learning",
+      more: "The trading desks added XGBoost, backtesting and market analysis"
     },
     {
       id: "ai-view", kind: "opinion", topic: "ai",
@@ -183,15 +223,15 @@ var Profile = (function () {
       why: "It's very good at the parts I already understand and can check, and least trustworthy exactly where " +
            "I'd most like to lean on it. Fine-tuning the models behind PATH made that concrete — the failure modes " +
            "are confident, not obvious",
-      more: "This site's Ask panel is the small version of that thought: no API key, no model call, " +
-            "just a retrieval model that admits when it doesn't know"
+      more: "This site's Ask panel is the small version of that thought: a retrieval model that admits when it doesn't " +
+            "know, and an optional language model on your own device that is only allowed to reword it"
     },
     {
       id: "interests", kind: "list", topic: "interests", summary: 1,
       keys: "interested interest interests care about passionate passion curious curiosity into like love " +
             "excited field domain area subject topic",
       subject: "what I'm interested in", frame: "I'm interested in {value}.",
-      list: ["Orbital mechanics and space — enough to spend this year on collision risk and build a solar system to navigate a website",
+      list: ["Orbital mechanics and space — enough to spend this year on spacecraft collision avoidance and build a solar system to navigate a website",
              "Quantitative research and markets — two trading desks so far",
              "Accessibility and assistive tech — a summer of it at Pathlight changed how I think about interfaces",
              "How AI changes the way software actually gets written"],
@@ -228,8 +268,9 @@ var Profile = (function () {
       value: "", why: "" },
     { id: "freetime",  topic: "freetime", subject: "what I do in my free time",
       phrases: "free time|spare time|for fun|outside of work|outside work|off the clock",
-      keys: "free spare hobby hobbies fun weekend relax unwind downtime enjoy",
-      value: "", why: "" },
+      keys: "free spare hobby hobbies fun weekend relax unwind downtime enjoy piano clarinet chess poker cars",
+      value: "I play piano and clarinet, play chess and poker, and follow Formula 1, cars, the NBA and soccer. " +
+             "Movies and music too", why: "" },
     { id: "studyspot", topic: "freetime", subject: "where I like to study",
       phrases: "like to study|study spot|studying spot|where do you like",
       keys: "study studying spot place library cafe coffee shop desk like favorite best usually",
@@ -244,11 +285,12 @@ var Profile = (function () {
       keys: "game games gaming video console pc steam favorite",
       value: "", why: "" },
     { id: "sport",     topic: "sport",    subject: "the sport I follow",
-      keys: "sport sports team follow watch football basketball soccer f1 racing play athletic gym run running",
-      value: "", why: "" },
+      keys: "sport sports team follow watch football basketball soccer f1 formula racing nba grizzlies play athletic",
+      value: "Formula 1, the NBA — I'm a Grizzlies fan — and soccer", why: "" },
     { id: "hometown",  topic: "location", subject: "where I grew up", intents: "where",
-      keys: "hometown grew grow up raised born childhood originally from home town",
-      value: "", why: "" },
+      phrases: "where are you from|where did you grow up|your hometown|where were you raised",
+      keys: "hometown grew grow up raised born childhood originally from home town tennessee collierville memphis",
+      value: "Collierville, Tennessee, just outside Memphis", why: "" },
     { id: "morning",   topic: "routine",  subject: "my morning",
       keys: "morning routine wake early schedule night owl sleep bedtime",
       value: "", why: "" },
@@ -257,7 +299,7 @@ var Profile = (function () {
       value: "", why: "" }
   ];
 
-  pending.forEach(function (f) { f.kind = "preference"; f.pending = 1; });
+  pending.forEach(function (f) { f.kind = "preference"; if (!f.value) f.pending = 1; });
 
   /* Questions the panel offers. Ones whose fact is still unanswered are filtered out by
      ask.js, so the suggestions always lead somewhere. */

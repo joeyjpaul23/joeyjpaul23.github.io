@@ -3,9 +3,10 @@
    painter's sort, no libraries. The ship holds z=0 and the world streams toward it,
    so every speed below is relative to the ship. */
 (function(){
-var d=document,root=d.documentElement,rm=matchMedia("(prefers-reduced-motion: reduce)").matches,
+var d=document,root=d.documentElement,rmQuery=matchMedia("(prefers-reduced-motion: reduce)"),rm=rmQuery.matches,
     coarse=matchMedia("(pointer: coarse)").matches;
 function $(id){return d.getElementById(id)}
+if(rmQuery.addEventListener)rmQuery.addEventListener("change",function(e){rm=e.matches});
 var layer=$("flight"),cv=$("fcv"),x=cv.getContext("2d"),card=$("fcard"),
     scoreEl=$("fscore"),bestEl=$("fbest"),nameEl=$("fname"),barEl=$("fbar"),hullEl=$("fhull"),
     boostEl=$("fboostbar"),boostBtn=$("fboost");
@@ -80,6 +81,13 @@ function shipView(fn){if(S.mode==="intro")return fn();
   var real=project(S.ship.x,S.ship.y,1),keep=[cam.x,cam.y];if(!real)return fn();
   cam.x=S.ship.x;cam.y=S.ship.y+CAMY;var seen=project(S.ship.x,S.ship.y,1);OX=real[0]-seen[0];OY=real[1]-seen[1];
   try{return fn()}finally{cam.x=keep[0];cam.y=keep[1];OX=OY=0}}
+/* The intro runs in two calm steps instead of all at once. Still looking straight down, the
+   view turns the short way from the orbit's heading until the nose points up; then the camera
+   swings back into the chase view. INTRO is the whole of it. */
+var INTRO=1.9,TURN_END=.8,SWING_START=.55;
+function introTurn(){if(S.mode!=="intro"||rm)return 0;var a=S.heading+Math.PI/2;
+  return Math.atan2(Math.sin(a),Math.cos(a))*(1-ease(S.modeT/TURN_END))}
+function introSwing(){return S.mode==="intro"?ease((S.modeT-SWING_START)/(INTRO-SWING_START)):1}
 function horizon(){return CY-F*Math.tan(cam.p)}
 /* The lane the ship may fly in is measured from the screen: the middle of the ship can reach
    most of the page, clear of the score above and the route line below. B.kx and B.ky are
@@ -273,7 +281,7 @@ function update(dt){
   resetFrame();
   S.t+=dt;S.modeT+=dt;
   var play=S.mode==="play";
-  if(S.mode==="intro"&&S.modeT>=1.9)setMode("ready");
+  if(S.mode==="intro"&&S.modeT>=INTRO)setMode("ready");
   S.boosting=play&&(keys.shift||boostHeld)&&S.boost>.02;
   S.boost=S.boosting?Math.max(0,S.boost-dt*.32):Math.min(1,S.boost+dt*.06);
   var target=S.mode==="play"?cruise(S.sector)*(S.boosting?1.75:1):S.mode==="arrive"?cruise(S.sector)*.55:S.mode==="over"?5:4;
@@ -281,7 +289,7 @@ function update(dt){
   var v=S.speed;
   if(S.ship.alive&&S.mode!=="intro")steer(dt);
   /* camera: a top-down drop onto the ship, as if the orbit zoomed in, then a swing to the chase view */
-  var sh=S.ship,e=S.mode==="intro"?ease(S.modeT/1.9):1;
+  var sh=S.ship,e=introSwing();
   chase(sh.x,sh.y);
   if(e<1){cam.x=mix(sh.x,cam.x,e);cam.y=mix(sh.y+4.6,cam.y,e);cam.z=mix(1,CAMZ,e);cam.p=mix(Math.PI/2-.001,PITCH,Math.pow(e,.8));
     cp=Math.cos(cam.p);spn=Math.sin(cam.p)}
@@ -350,7 +358,7 @@ function planet(w,px,py,r){if(r<.5)return;var lo=lit(w.soil),sh=lit(w.shade);
       x.beginPath();x.ellipse(px+c[0]*r,py+c[1]*r,c[2]*r,c[2]*r*.7,0,0,6.2832);x.fill()})}
   if(w.lamp&&r>34){x.fillStyle="rgb(255,196,122)";x.beginPath();x.arc(px+r*.46,py+r*.38,Math.max(1.4,r*.018),0,6.2832);x.fill()}
   x.restore()}
-function drawBackdrop(){var hz=horizon(),m=Math.min(W,H),e=S.mode==="intro"?ease(S.modeT/1.9):1;
+function drawBackdrop(){var hz=horizon(),m=Math.min(W,H),e=introSwing();
   x.globalAlpha=e;
   /* the site's accent sun, far off to the left where the light comes from */
   x.fillStyle=C.accent;x.beginPath();x.arc(CX-W*.3-cam.x*4,hz+m*.04,Math.max(5,m*.011),0,6.2832);x.fill();
@@ -452,7 +460,7 @@ function render(){
   resetFrame();
   x.setTransform(dpr,0,0,dpr,0,0);x.globalAlpha=1;x.fillStyle=C.bg;x.fillRect(0,0,W,H);
   x.save();
-  var roll=S.mode==="intro"&&!rm?(S.heading+Math.PI/2)*(1-ease(S.modeT/1.9)):0;
+  var roll=introTurn();
   var jolt=S.shake>0?S.shake*18:0;
   x.translate(W/2+rand(-jolt,jolt),H/2+rand(-jolt,jolt));x.rotate(roll);x.translate(-W/2,-H/2);
   drawStars();drawBackdrop();drawLane();

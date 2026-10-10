@@ -3,17 +3,59 @@ var d=document,root=d.documentElement,rm=matchMedia("(prefers-reduced-motion: re
 var cv=d.getElementById("sky"),x=cv.getContext("2d"),W,H,dpr=Math.min(devicePixelRatio||1,2),C={};
 var secs=[].slice.call(d.querySelectorAll("#panel section")),intro=d.getElementById("intro"),top_=d.getElementById("top");
 var page=-1,tip=d.getElementById("tip");
-function go(n){if(n!==page){
-    view.from=view.amount;view.target=n<0?0:1;view.started=tt;
-    view.hop=n>=0&&page>=0&&view.amount>.5;
-    view.previous=view.planet;if(n>=0&&!view.hop)view.planet=n;
-    view.terrainStarted=tt;showRole(null);
+/* Text that changes runs inside a View Transition where the browser has one. The block that is
+   leaving is captured where it stood and fades, lifts and blurs away, while the arriving block
+   rises in on its own .r stagger. The page's own snapshot is not cross-faded, so the canvas keeps
+   running live underneath with nothing ghosting. Without the API, or with reduced motion, the
+   swap is instant. vt() marks the root for the matching CSS (style.css, View Transitions). */
+var vtCount={};
+function vt(kind,update){
+  if(rm||typeof d.startViewTransition!=="function"){update();return null}
+  vtCount[kind]=(vtCount[kind]||0)+1;root.classList.add(kind);
+  function done(){if(--vtCount[kind]<=0){vtCount[kind]=0;root.classList.remove(kind)}}
+  var t=d.startViewTransition(update);t.finished.then(done,done);return t}
+/* While a swap runs, vt-arrive holds the incoming stagger back a beat so the old block is mostly
+   gone before the new one rises. It stays on until well after the last entrance has finished, so
+   no running animation ever has its delay changed under it. */
+var arriveTimer=0;
+function swap(out,update){
+  if(!out||!out.style||out.hidden){update();return}
+  out.style.viewTransitionName="vt-out";
+  if(!vt("vt-swap",function(){out.style.viewTransitionName="";root.classList.add("vt-arrive");
+    clearTimeout(arriveTimer);arriveTimer=setTimeout(function(){root.classList.remove("vt-arrive")},2600);update()}))out.style.viewTransitionName=""}
+function shown(){var on=secs.filter(function(s){return s.classList.contains&&s.classList.contains("on")})[0];
+  if(on&&page===2&&roleList){var open=roles.filter(function(r){return!r.hidden})[0];return open||roleList}return on}
+/* Each page has its own address, so Back, Forward, the trackpad's swipe back and a shared link
+   all work. Arriving from history does not add another entry. */
+var fromHistory=false;
+function slugOf(n){return n>=0&&M[n]?"#"+M[n].n.toLowerCase():""}
+function pageOfHash(){if(typeof location==="undefined")return-1;var h=(location.hash||"").toLowerCase();
+  for(var i=0;i<M.length;i++)if(slugOf(i)===h)return i;return-1}
+function remember(n){if(fromHistory||typeof history==="undefined"||!history.pushState||typeof location==="undefined")return;
+  var want=slugOf(n);if((location.hash||"")===want)return;
+  try{history.pushState({page:n},"",want||location.pathname+location.search)}catch(e){}}
+if(typeof history!=="undefined")addEventListener("popstate",function(){if(flying)return;fromHistory=true;try{go(pageOfHash())}finally{fromHistory=false}});
+function go(n){var out=n!==page?shown():null;if(n!==page){
+    view.target=n<0?0:1;
+    /* World to world: the destination's dot in the sky opens over the current landscape, which
+       stays put underneath until it is covered. No trip back out to the orbit. */
+    if(n>=0&&page>=0&&view.amount>.5&&!rm){
+      openings.push({planet:n,t:0,v:0,from:dotPose(n)});
+      if(M[view.planet])M[view.planet].alpha=0;view.planet=n}
+    else if(n>=0){view.planet=view.base=n;openings=[]}
+    else{if(openings.length)view.base=view.planet;openings=[]}
+    /* Paint the destination now, inside the click, while nothing is moving yet; every frame of
+       the move that follows only places finished pictures. */
+    if(n>=0&&lastArea&&!rm)paintWorld(n,lastArea);
+    resetRole();
     liftOff(n);
     if(ship.position){ship.from=ship.position.slice();ship.departed=tt;ship.routeAngle=null;ship.screenFrom=ship.screen&&ship.screen.slice()}
-  }page=n;
-  secs.forEach(function(s,i){s.classList.toggle("on",i===n)});
-  intro.classList.toggle("hide",n>=0);top_.classList.toggle("hide",n<0);
-  tip.classList.toggle("hide",n<0);setReading();
+  }page=n;remember(n);
+  swap(out,function(){
+    if(roleDirty)showRole(null,null,true);
+    secs.forEach(function(s,i){s.classList.toggle("on",i===n)});
+    intro.classList.toggle("hide",n>=0);top_.classList.toggle("hide",n<0);
+    tip.classList.toggle("hide",n<0);setReading()});
   if(typeof dispatchEvent==="function"&&typeof CustomEvent!=="undefined")dispatchEvent(new CustomEvent("orbit:page",{detail:n}));
   if(rm)frame(1)}
 /* About (index 0) is a two-column spread, so it folds the landscape away exactly as a sub-page
@@ -28,23 +70,32 @@ function setReading(){if(!root.classList||!root.classList.toggle)return;
 top_.addEventListener("click",function(){go(-1)});
 /* Experience sub-pages. Each role is an article inside the Experience section; opening one swaps
    it in for the list without leaving the landscape. Showing it restarts the .r entrance. */
-var roleList=d.getElementById("xp-list"),roles=[].slice.call(d.querySelectorAll(".sub")),role=null;
-function showRole(id,from){
+var roleList=d.getElementById("xp-list"),roles=[].slice.call(d.querySelectorAll(".sub")),role=null,roleDirty=false;
+/* Leaving Experience forgets the open role. The state clears now; the DOM follows inside go's swap. */
+function resetRole(){if(role){role=null;roleDirty=true}}
+function showRole(id,from,instant){
   if(!roleList)return;
-  var open=roles.filter(function(r){return r.id==="xp-"+id})[0]||null;
-  role=open?id:null;roleList.hidden=!!open;
-  /* Reading a role sends the landscape back and centers the text (see .reading in style.css). */
-  setReading();
-  roles.forEach(function(r){r.hidden=r!==open});
-  var section=roleList.parentNode;if(section)section.scrollTop=0;
-  if(open){var heading=open.querySelector("h2");if(heading&&heading.focus)heading.focus({preventScroll:true})}
-  else if(from){var back=roleList.querySelector('[data-role="'+from+'"]');if(back&&back.focus)back.focus({preventScroll:true})}}
+  var open=roles.filter(function(r){return r.id==="xp-"+id})[0]||null,out=null;
+  if(!instant&&page===2){out=roles.filter(function(r){return!r.hidden})[0]||roleList;if(out===open||(!open&&out===roleList))out=null}
+  role=open?id:null;roleDirty=false;
+  function apply(){roleList.hidden=!!open;
+    /* Reading a role sends the landscape back and centers the text (see .reading in style.css). */
+    setReading();
+    roles.forEach(function(r){r.hidden=r!==open});
+    var section=roleList.parentNode;if(section)section.scrollTop=0;
+    if(open){var heading=open.querySelector("h2");if(heading&&heading.focus)heading.focus({preventScroll:true})}
+    else if(from){var back=roleList.querySelector('[data-role="'+from+'"]');if(back&&back.focus)back.focus({preventScroll:true})}}
+  if(out)swap(out,apply);else apply()}
 if(roleList&&roleList.parentNode)roleList.parentNode.addEventListener("click",function(e){
   var target=e.target.closest&&e.target.closest("[data-role]");if(!target)return;
   var next=target.getAttribute("data-role"),from=role;showRole(next||null,from)});
-addEventListener("keydown",function(e){if(flying)return;
+/* Shortcuts never fire while typing (the Ask box) or with a modifier held (browser and dev keys).
+   The arrows step through the worlds in page order; left from the first goes home. */
+addEventListener("keydown",function(e){if(flying||e.metaKey||e.ctrlKey||e.altKey)return;
+  var t=e.target,tag=t&&t.tagName;if(tag==="INPUT"||tag==="TEXTAREA"||(t&&t.isContentEditable))return;
   if(e.key==="Escape"&&role){showRole(null,role);return}
-  if(e.key==="Escape"||e.key==="0")go(-1);else if(/^[1-9]$/.test(e.key)&&+e.key<=M.length)go(+e.key-1);else if(e.key==="f"||e.key==="F")launch()});
+  if(e.key==="Escape"||e.key==="0")go(-1);else if(/^[1-9]$/.test(e.key)&&+e.key<=M.length)go(+e.key-1);else if(e.key==="f"||e.key==="F")launch();
+  else if(e.key==="ArrowRight"&&page<M.length-1)go(page+1);else if(e.key==="ArrowLeft"&&page>=0)go(page-1)});
 /* Catching Starship opens Flight (game.js). The orbit zooms into the ship and stops drawing
    while the game runs; coming back zooms out and, after "Land here", approaches that page. */
 var flying=false,paused=false,looping=false,zoomIn=null,shipHit=null,shipHov=false;
@@ -59,7 +110,7 @@ function launch(){if(flying||typeof Flight==="undefined"||!ship.screen)return;la
     cv.animate([{transform:"scale(6)",opacity:0},{transform:"scale(1)",opacity:1}],{duration:rm?1:900,easing:"cubic-bezier(.2,.7,.2,1)"});
     last=performance.now();if(n>=0)landOn(n);if(rm)frame(1);else if(!looping)frame(0)}})},rm?0:420)}
 /* cycling line */
-var cyc=d.getElementById("cyc"),ph=["a student of computer science and math.","an iOS and React Native developer.","building ML to predict satellite collisions.","curious about AI in the way software gets built."],pi=0;
+var cyc=d.getElementById("cyc"),ph=["a student of computer science and math.","a portfolio manager at Sinn Fund.","building collision avoidance for spacecraft.","into machine learning and quantitative research."],pi=0;
 if(!rm)setInterval(function(){if(page>=0)return;
   cyc.animate([{opacity:1,transform:"translateY(0)"},{opacity:0,transform:"translateY(-14px)"}],{duration:280,fill:"forwards"}).finished.then(function(){
     pi=(pi+1)%ph.length;cyc.textContent=ph[pi];
@@ -78,10 +129,16 @@ function showTheme(){var isDark=themeIsDark();
   themeBtn.setAttribute("aria-label",isDark?"Switch to light mode":"Switch to dark mode")}
 try{var saved=localStorage.getItem("theme");if(saved==="dark"||saved==="light")root.dataset.theme=saved}catch(e){}
 colors();showTheme();darkQuery.addEventListener("change",showTheme);
+/* The new theme is revealed as a circle growing out of the button, over a still image of the
+   old one. Transitions are held off meanwhile so the revealed page is already in its colors. */
 themeBtn.addEventListener("click",function(){
-  var next=themeIsDark()?"light":"dark";root.dataset.theme=next;
-  try{localStorage.setItem("theme",next)}catch(e){}
-  showTheme()});
+  var next=themeIsDark()?"light":"dark";
+  function apply(){root.dataset.theme=next;try{localStorage.setItem("theme",next)}catch(e){}showTheme()}
+  if(rm||typeof d.startViewTransition!=="function"){apply();return}
+  var b=themeBtn.getBoundingClientRect(),bx=b.left+b.width/2,by=b.top+b.height/2;
+  root.style.setProperty("--vt-x",bx+"px");root.style.setProperty("--vt-y",by+"px");
+  root.style.setProperty("--vt-r",Math.ceil(Math.hypot(Math.max(bx,innerWidth-bx),Math.max(by,innerHeight-by)))+"px");
+  vt("vt-theme",apply)});
 function rs(){W=innerWidth;H=innerHeight;setReading();cv.width=W*dpr;cv.height=H*dpr;x.setTransform(dpr,0,0,dpr,0,0);if(rm)frame(1)}
 addEventListener("resize",rs);
 /* 3D scene */
@@ -97,8 +154,8 @@ var belt=[],k;for(k=0;k<110;k++)belt.push({a:Math.random()*6.283,r:1.6+Math.rand
 var yaw=.6,pit=.45,vy=0,vp=0,zoom=1,tz=1,drag=false,moved=false,dx0=0,dy0=0,lx=0,ly=0,mx=-999,my=-999,hov=-1,ts=1,last=performance.now(),tt=0;
 var sc=1,ga=1,cxp=null,cyp=null,sceneRadius=0;
 var ship={position:null,from:null,departed:0,heading:null,routeAngle:null};
-var view={amount:0,from:0,target:0,started:0,planet:0,previous:0,terrainStarted:0,hop:false,pan:0,read:0};
-var meteor=null,nextMeteor=9+Math.random()*8;
+var view={amount:0,av:0,target:0,planet:0,base:0,pan:0,read:0,rv:0};
+var frameCount=0,shipHot=0,meteor=null,nextMeteor=9+Math.random()*8;
 var mini=d.getElementById("mini"),mg=mini.getContext("2d"),read=d.getElementById("read");
 function world(px,py,pz,inc,nod){
   var y1=py*Math.cos(inc)-pz*Math.sin(inc),z1=py*Math.sin(inc)+pz*Math.cos(inc),
@@ -109,9 +166,18 @@ function P(px,py,pz,inc,nod,R,cx,cy){
       x3=x2*Math.cos(yaw)+z2*Math.sin(yaw),z3=-x2*Math.sin(yaw)+z2*Math.cos(yaw),
       y4=y1*Math.cos(pit)-z3*Math.sin(pit),z4=y1*Math.sin(pit)+z3*Math.cos(pit),s=4.2/(4.2+z4);
   return[cx+x3*R*s,cy+y4*R*s,z4,s]}
-function ball(X,Y,r,col){x.globalAlpha=1;x.fillStyle=col;x.beginPath();x.arc(X,Y,r,0,6.2832);x.fill()}
+function ball(X,Y,r,col,a){x.globalAlpha=a==null?1:a;x.fillStyle=col;x.beginPath();x.arc(X,Y,r,0,6.2832);x.fill()}
 function mix(a,b,t){return a+(b-a)*t}
 function ease(t){t=Math.max(0,Math.min(1,t));return t*t*(3-2*t)}
+/* Motion runs on elapsed time, not on frames, so it eases the same at 60 Hz, at 120 Hz and
+   across a dropped frame. rate is per second; a step of Infinity lands on the target. */
+function damp(value,target,rate,step){return value+(target-value)*(1-Math.exp(-rate*step))}
+var fitStep=1/60;
+/* Hover and selection fade colors rather than switching them. */
+var rgbCache={};
+function rgbOf(c){var v=rgbCache[c];if(!v)v=rgbCache[c]=hexRGB(c)||[128,128,128];return v}
+function tint(a,b,t){if(t<=.001)return a;if(t>=.999)return b;var p=rgbOf(a),q=rgbOf(b);
+  return"rgb("+Math.round(mix(p[0],q[0],t))+","+Math.round(mix(p[1],q[1],t))+","+Math.round(mix(p[2],q[2],t))+")"}
 /* The same selected planet grows into a low horizon while the camera approaches. */
 function surfaceArea(wide){
   var left=wide?d.getElementById("panel").getBoundingClientRect().right+28:0;
@@ -191,7 +257,7 @@ function drawSky(area){
   x.restore()}
 /* A lit height field supplies real facets, perspective and occluding ridges.
    Climates, like the palettes, are indexed by art id (M[i].k): About, Projects, Skills, Contact, Experience. */
-var terrainMeshes={},surfaceLayer=null,surfaceKey="";
+var terrainMeshes={};
 /* Water shimmer and chimney smoke have to keep moving, so they are drawn live on top of
    the cached terrain rather than baked into it. paintSurface leaves them this plan. */
 var waterSurface=null,chimneys=[],lights=[],stars=[],snowfall=null,fires=[],sleigh=null;
@@ -726,29 +792,100 @@ function readingGlobe(){
   var wide=W>=820||(W>=650&&H<=550),spread=spreadOn(),
     radius=wide?(spread?Math.min(W*.22,H*.34):Math.min(W,H)*.36):Math.min(W*.3,125);
   return{x:W-radius*.5,y:H-radius*.5,r:radius,ring:radius+(wide?60:42)}}
-function drawSurface(p,r,area){
-  var k=ease(view.read);
-  if(k<.001)return drawLandscape(p,r,area);
-  var g=readingGlobe(),radius=mix(Math.hypot(W,H)*1.05,g.r,k),scale=mix(1,.8,k);
-  /* Center the valley in the visible part of the globe, but never so far that the scaled
-     landscape stops short of the screen's right or bottom edge inside the circle. */
-  var viewX=g.x-g.r*.28,viewY=g.y-g.r*.2;
-  var lake=waterSurface,aimX=lake?(lake.left+lake.right)/2:W*.74,aimY=lake?(lake.top+lake.bottom)/2:H*.68;
-  var focusX=Math.min(aimX,W-(W-viewX)/.8),focusY=Math.min(aimY,H-(H-viewY)/.8);
-  x.save();x.beginPath();x.arc(g.x,g.y,radius,0,Math.PI*2);
-  x.globalAlpha=.07*k;x.fillStyle=C.dim;x.fill();x.globalAlpha=1;x.clip();
-  x.translate(mix(focusX,viewX,k),mix(focusY,viewY,k));x.scale(scale,scale);x.translate(-focusX,-focusY);
-  drawLandscape(p,r,area);x.restore();
-  x.save();x.globalAlpha=.35*k;x.strokeStyle=C.dim;x.lineWidth=1;x.beginPath();x.arc(g.x,g.y,radius,0,Math.PI*2);x.stroke();x.restore()}
-function drawLandscape(p,r,area){
-  /* Cache the settled terrain; moving ships and stars do not repaint thousands of facets. */
-  if(view.amount<.999){paintSurface(x,p,r,area);surfaceKey="";drawLiveSurface(x);return}
-  var key=[W,H,dpr,Math.round(p[0]*10),Math.round(p[1]*10),Math.round(r*10),view.planet,C.bg,Math.round(view.pan*50)].join(":");
-  if(!surfaceLayer)surfaceLayer=d.createElement("canvas");
-  if(key!==surfaceKey){surfaceLayer.width=W*dpr;surfaceLayer.height=H*dpr;
-    var ctx=surfaceLayer.getContext("2d");ctx.setTransform(dpr,0,0,dpr,0,0);paintSurface(ctx,p,r,area);surfaceKey=key}
-  x.save();x.globalAlpha=1;x.drawImage(surfaceLayer,0,0,W,H);x.restore();
-  drawLiveSurface(x)}
+/* ── Worlds as windows ──────────────────────────────────────────────────────────────
+   Every landscape is a circular window onto its own painted world, and every navigation is
+   one continuous move of that window: out of the clicked planet's dot to the whole screen,
+   down into the reading globe, or back into its dot in the orbit. The terrain is painted once
+   per world into its own bitmap (paintWorld), so transitions move finished pictures instead of
+   repainting thousands of facets a frame, and the world is recognisable the whole way in.
+   All of it runs on critically damped springs, so any move can be interrupted mid-flight and
+   carries its velocity into the next. */
+var openings=[],worldCache={},worldOrder=[],WORLDS_KEPT=3,worldEpoch=0,lastArea=null;
+/* A critically damped spring, stepped exactly for any dt: no overshoot from rest, no frame-rate
+   dependence. omega sets the pace; about 6.6/omega seconds to settle. */
+function spring(o,key,vel,target,omega,dt){
+  if(!(dt<1e6)){o[key]=target;o[vel]=0;return}
+  var x0=o[key]-target,v0=o[vel]||0,c=v0+omega*x0,e=Math.exp(-omega*dt);
+  o[key]=target+(x0+c*dt)*e;o[vel]=(v0-omega*c*dt)*e;
+  if(Math.abs(o[key]-target)<1e-4&&Math.abs(o[vel])<1e-3){o[key]=target;o[vel]=0}}
+function paintWorld(planet,area){
+  var key=[W,H,dpr,planet,C.bg,Math.round(view.pan*50),worldEpoch,Math.round(area.left),Math.round(area.top)].join(":"),w=worldCache[planet];
+  if(w&&w.key===key){touchWorld(planet);return w}
+  if(!w){var canvas=null;
+    if(worldOrder.length>=WORLDS_KEPT){var gone=worldOrder.shift();canvas=worldCache[gone].canvas;delete worldCache[gone]}
+    w=worldCache[planet]={canvas:canvas||d.createElement("canvas")}}
+  touchWorld(planet);
+  /* paintSurface draws the current planet and leaves its live plan in globals; paint this one
+     as if it were current and settled, keep its plan with its bitmap, then put everything back. */
+  var keep={planet:view.planet,amount:view.amount,water:waterSurface,chimneys:chimneys,lights:lights,stars:stars,
+    snow:snowfall,fires:fires,sleigh:sleigh,site:landingSite};
+  view.planet=planet;view.amount=1;landingSite=null;
+  w.canvas.width=W*dpr;w.canvas.height=H*dpr;
+  var ctx=w.canvas.getContext("2d");ctx.setTransform(dpr,0,0,dpr,0,0);
+  paintSurface(ctx,[area.cx,area.horizon+area.radius],area.radius,area);
+  w.live={water:waterSurface,chimneys:chimneys,lights:lights,stars:stars,snow:snowfall,fires:fires,sleigh:sleigh};
+  w.site=landingSite;w.key=key;
+  view.planet=keep.planet;view.amount=keep.amount;waterSurface=keep.water;chimneys=keep.chimneys;lights=keep.lights;
+  stars=keep.stars;snowfall=keep.snow;fires=keep.fires;sleigh=keep.sleigh;landingSite=keep.site;
+  return w}
+function touchWorld(planet){var i=worldOrder.indexOf(planet);if(i>=0)worldOrder.splice(i,1);worldOrder.push(planet)}
+function useWorld(w){var l=w.live;waterSurface=l.water;chimneys=l.chimneys;lights=l.lights;stars=l.stars;
+  snowfall=l.snow;fires=l.fires;sleigh=l.sleigh;if(w.site)landingSite=w.site}
+/* Hovering a destination paints its world while the browser is idle, so the click opens at once. */
+function prewarm(planet){if(planet<0||!lastArea||worldCache[planet]||typeof requestIdleCallback!=="function")return;
+  requestIdleCallback(function(){if(lastArea&&!worldCache[planet])paintWorld(planet,lastArea)},{timeout:400})}
+/* A pose places a world's window: a clip circle (x,y,r) and the content transform that puts
+   content point (fx,fy) at screen point (ax,ay), scaled by k. */
+function fullPose(w){var f=focusOf(w),r=Math.hypot(W,H)/2+4;return{x:W/2,y:H/2,r:r,k:1,fx:f[0],fy:f[1],ax:f[0],ay:f[1]}}
+/* While a sub-page is read, the window settles into a globe that peeks out of the bottom-right
+   corner, its valley centered in the visible part, never so far that the scaled land stops
+   short of the screen's right or bottom edge inside the circle. */
+function globePose(w){var g=readingGlobe(),f=focusOf(w),viewX=g.x-g.r*.28,viewY=g.y-g.r*.2;
+  return{x:g.x,y:g.y,r:g.r,k:.8,fx:f[0],fy:f[1],ax:viewX,ay:viewY}}
+function focusOf(w){var g=readingGlobe(),viewX=g.x-g.r*.28,viewY=g.y-g.r*.2,lake=w&&w.live.water;
+  var aimX=lake?(lake.left+lake.right)/2:W*.74,aimY=lake?(lake.top+lake.bottom)/2:H*.68;
+  return[Math.min(aimX,W-(W-viewX)/.8),Math.min(aimY,H-(H-viewY)/.8)]}
+function restPose(w){return view.read<=0?fullPose(w):view.read>=1?globePose(w):mixPose(fullPose(w),globePose(w),ease(view.read))}
+/* A planet's dot: an iris onto its world, centered where the dot is. The world inside sits in
+   its real place, a touch magnified, and settles to true scale as the iris opens; it is never
+   shrunk, so no edge of the painted world can ever show. */
+function dotPose(planet){var p=pos[planet];if(!p)return null;
+  var r=Math.max(2,p.radius||((.06+.015*(M[planet].hot||0))*sceneRadius*p[3]+2));
+  return{x:p[0],y:p[1],r:r,k:1.12,fx:p[0],fy:p[1],ax:p[0],ay:p[1]}}
+/* Size and scale interpolate geometrically, so the zoom reads as one even move. */
+function mixPose(a,b,t){t=Math.max(0,Math.min(1,t));function g(u,v){return u*Math.pow(v/u,t)}
+  return{x:mix(a.x,b.x,t),y:mix(a.y,b.y,t),r:g(a.r,b.r),k:g(a.k,b.k),fx:mix(a.fx,b.fx,t),fy:mix(a.fy,b.fy,t),ax:mix(a.ax,b.ax,t),ay:mix(a.ay,b.ay,t)}}
+/* Draw one world through its window. open is how far it has opened out of its dot: the dot's
+   own color covers it at first and clears as it grows, so the planet you clicked visibly
+   becomes the place. */
+function drawWorld(w,p,open,dotColor,over,area,fade){
+  var full=Math.hypot(W,H)/2+4,lens=Math.max(0,Math.min(1,(full-p.r)/(full*.3)));
+  x.save();x.beginPath();x.arc(p.x,p.y,p.r,0,Math.PI*2);
+  /* A world opening over another brings its own sky, so nothing of the old one shows through.
+     Only the reading globe is tinted, so an opening iris never reads as a flat disc. */
+  if(over||lens>0){x.globalAlpha=over?1:lens;x.fillStyle=C.bg;x.fill()}
+  if(view.read>0&&lens>0){x.globalAlpha=.07*lens*ease(view.read);x.fillStyle=C.dim;x.fill()}
+  x.globalAlpha=1;x.clip();
+  if(over&&area)drawSky(area);
+  x.translate(p.ax,p.ay);x.scale(p.k,p.k);x.translate(-p.fx,-p.fy);
+  x.globalAlpha=fade==null?1:fade;x.drawImage(w.canvas,0,0,W,H);x.globalAlpha=1;
+  var live=ease((open-.55)/.45);
+  if(live>0){useWorld(w);x.globalAlpha=live;drawLiveSurface(x);x.globalAlpha=1}
+  x.restore();
+  var cap=1-ease(open/.42);
+  if(cap>0&&dotColor){x.globalAlpha=cap;x.fillStyle=dotColor;x.beginPath();x.arc(p.x,p.y,p.r+.5,0,Math.PI*2);x.fill();x.globalAlpha=1}
+  if(lens>0){x.save();x.globalAlpha=.24*lens*(1-cap*.6);x.strokeStyle=C.dim;x.lineWidth=1;x.beginPath();x.arc(p.x,p.y,p.r,0,Math.PI*2);x.stroke();x.restore()}}
+function drawWorlds(area){
+  lastArea=area;if(view.amount<=0&&!openings.length)return;
+  x.save();x.beginPath();x.rect(0,0,W,H);x.clip();
+  var base=paintWorld(view.base,area),m=M[view.base],dot=view.amount<1?dotPose(view.base):null;
+  var rest=restPose(base),newest=openings.length?openings[openings.length-1].t:0;
+  /* The world being left recedes a little as the next one opens over it. */
+  drawWorld(base,dot?mixPose(dot,rest,view.amount):rest,view.amount,tint(C.fg,C.accent,m?m.hot||0:0),false,area,1-.35*ease(newest));
+  openings.forEach(function(o){var w=paintWorld(o.planet,area),from=o.from||restPose(w);
+    drawWorld(w,mixPose(from,restPose(w),o.t),o.t,C.accent,true,area)});
+  /* The live plan (water, smoke, the landing pad) belongs to the world being arrived at. */
+  var top=openings.length?worldCache[openings[openings.length-1].planet]:base;if(top)useWorld(top);x.restore()}
 /* Starship travels in scene coordinates, so dragging and zooming keep it in the solar system. */
 function shipDestination(time){
   if(page<0){var a=3.6+time*.16;return world(Math.cos(a)*1.48,0,Math.sin(a)*1.48,.2,.5)}
@@ -808,7 +945,7 @@ function shootingStar(){
     x.lineTo(px-meteor.dx*W/distance*b,py-meteor.dy*H/distance*b);x.stroke()}
   x.globalAlpha=fade*.8;x.fillStyle=C.fg;x.beginPath();x.arc(px,py,1.2,0,Math.PI*2);x.fill();x.restore()}
 function hit(mx_,my_){var label=labels.find(function(l){return mx_>=l.x-4&&mx_<=l.x+l.w+4&&my_>=l.y-14&&my_<=l.y+5});if(label)return label.i;
-  var b=-1,bz=1e9;pos.forEach(function(p,i){if(Math.hypot(mx_-p[0],my_-p[1])<14*p[3]+14&&p[2]<bz){bz=p[2];b=i}});return b}
+  var b=-1,bz=1e9;pos.forEach(function(p,i){if(p.world&&view.amount>.5)return;if(Math.hypot(mx_-p[0],my_-p[1])<14*p[3]+14&&p[2]<bz){bz=p[2];b=i}});return b}
 var pos=[],labels=[];
 /* Fit projected geometry before drawing. Pixel padding includes labels and the full engine plume. */
 function fitScene(desired,home,wide){
@@ -836,62 +973,83 @@ function fitScene(desired,home,wide){
   for(var attempt=0;attempt<14;attempt++){var trial=(low+high)/2,b=measure(trial);
     if(b.right-b.left<=right-left&&b.bottom-b.top<=bottom-top)low=trial;else high=trial}
   var target=Math.max(1,low);
-  sceneRadius=sceneRadius?Math.min(target,sceneRadius+(target-sceneRadius)*.07):target;
+  sceneRadius=sceneRadius?Math.min(target,damp(sceneRadius,target,4.35,fitStep)):target;
   var R=sceneRadius,b=measure(R),minX=left-b.left,maxX=right-b.right;
   var minY=top-b.top,maxY=bottom-b.bottom;
   var targetX=(minX+maxX)/2,targetY=(minY+maxY)/2;
-  cxp=cxp===null?targetX:cxp+(targetX-cxp)*.07;cyp=cyp===null?targetY:cyp+(targetY-cyp)*.07;
+  cxp=cxp===null?targetX:damp(cxp,targetX,4.35,fitStep);cyp=cyp===null?targetY:damp(cyp,targetY,4.35,fitStep);
   cxp=Math.max(minX,Math.min(maxX,cxp));cyp=Math.max(minY,Math.min(maxY,cyp));
   return[R,cxp,cyp]}
 function drawLabels(R,home){
   labels=[];
-  pos.map(function(p,i){return{p:p,i:i}}).filter(function(entry){return view.amount<.1||entry.i!==view.planet}).sort(function(a,b){return a.p[1]-b.p[1]}).forEach(function(entry){
-    var p=entry.p,i=entry.i,hi=i===hov||i===page,r=p.radius||((hi?.075:.06)*R*p[3]*(home?1:.8)+2);
-    var width=x.measureText(p[4].n).width,l={i:i,w:width,x:Math.max(12,Math.min(W-width-12,p[0]+r+8)),y:p[1]+5};
+  var placed=pos.map(function(p,i){return{p:p,i:i}}).filter(function(entry){return view.amount<.1||!entry.p.world}).sort(function(a,b){return a.p[1]-b.p[1]}).map(function(entry){
+    var p=entry.p,i=entry.i,m=p[4],hot=m.hot||0,r=p.radius||((.06+.015*hot)*R*p[3]*(home?1:.8)+2);
+    var width=x.measureText(m.n).width,right=Math.max(12,Math.min(W-width-12,p[0]+r+8));
     /* Around the reading globe the label sits outside the arc, to the left of its dot — except
-       in the About spread, where left is the text column, so it reads outwards instead. */
-    if(view.read>.5)l.x=spreadOn()?Math.max(spreadEdge(),Math.min(W-width-12,p[0]+r+8))
-      :Math.max(12,p[0]-r-8-width);
-    labels.forEach(function(other){if(l.x<other.x+other.w+8&&l.x+l.w+8>other.x&&Math.abs(l.y-other.y)<21)l.y=other.y+21});
-    l.y=Math.max(24,Math.min(H-16,l.y));labels.push(l);
-    if(Math.abs(l.y-p[1]-5)>8){x.globalAlpha=.4;x.strokeStyle=C.dim;x.beginPath();x.moveTo(p[0]+r+3,p[1]);x.lineTo(l.x-3,l.y-5);x.stroke()}
-    x.globalAlpha=hi?1:.8;x.fillStyle=hi?C.accent:C.fg;x.fillText(p[4].n,l.x,l.y)});
+       in the About spread, where left is the text column, so it reads outwards instead. It
+       slides across rather than jumping when the globe forms. */
+    var left=spreadOn()?Math.max(spreadEdge(),right):Math.max(12,p[0]-r-8-width);
+    m.side=rm?(view.read>.5?1:0):damp(m.side||0,view.read>.5?1:0,10,fitStep);
+    var l={i:i,w:width,x:mix(right,left,ease(m.side)),y:p[1]+5};
+    settle(l,labels);labels.push(l);return{p:p,m:m,hot:hot,r:r,l:l}});
+  /* Labels that bump to clear a neighbour glide to their new line instead of snapping. If the
+     glide would make two overlap, this frame uses the settled layout above. */
+  var glide=[],clear=!rm;
+  placed.forEach(function(e){var target=e.l.y-e.p[1]-5,nudge=e.m.nudge==null?target:damp(e.m.nudge,target,14,fitStep);
+    var l={i:e.l.i,w:e.l.w,x:e.l.x,y:Math.max(24,Math.min(H-16,e.p[1]+5+nudge))};
+    glide.forEach(function(o){if(overlaps(l,o))clear=false});glide.push(l)});
+  if(clear)labels=glide;
+  placed.forEach(function(e,n){var l=labels[n],p=e.p;e.m.nudge=l.y-p[1]-5;
+    var lead=Math.max(0,Math.min(1,(Math.abs(e.m.nudge)-5)/6));
+    if(lead>0){x.globalAlpha=.4*lead;x.strokeStyle=C.dim;x.beginPath();x.moveTo(p[0]+e.r+3,p[1]);x.lineTo(l.x-3,l.y-5);x.stroke()}
+    x.globalAlpha=(.8+.2*e.hot)*(e.m.alpha==null?1:e.m.alpha);x.fillStyle=tint(C.fg,C.accent,e.hot);x.fillText(e.m.n,l.x,l.y)});
   x.globalAlpha=1}
+function overlaps(a,b){return a.x<b.x+b.w+8&&a.x+a.w+8>b.x&&Math.abs(a.y-b.y)<21}
+function settle(l,others){others.forEach(function(o){if(overlaps(l,o))l.y=o.y+21});l.y=Math.max(24,Math.min(H-16,l.y))}
 function reading(){return!!(root.classList&&root.classList.contains&&root.classList.contains("reading"))}
 function frame(snap){
   if(paused){looping=false;return}
   var now=performance.now(),dt=Math.min((now-last)/1000,.05)*devSpeed;last=now;
-  var wide=W>=820||(W>=650&&H<=550),home=page<0,kk=snap?1:.07;
-  var approach=(tt-view.started)/2.2;
-  if(view.hop){
-    if(approach>=.5||rm)view.planet=page;
-    view.amount=rm?1:approach<.5?mix(view.from,0,ease(approach*2)):ease((approach-.5)*2);
-  }else view.amount=rm?view.target:mix(view.from,view.target,ease(approach));
-  /* Reading a sub-page folds the landscape into a globe in the corner (see drawSurface). */
+  var wide=W>=820||(W>=650&&H<=550),home=page<0,step=snap?Infinity:dt;fitStep=snap?1/60:dt;
+  /* Orbit to world (and back) is one spring; so is the fold into the reading globe; each
+     world opening out of its dot is another. See "Worlds as windows". */
+  spring(view,"amount","av",view.target,rm?0:5.2,rm?Infinity:step);
   var readTarget=reading()&&view.amount>.5?1:0;
-  view.read=rm||snap?readTarget:view.read+(readTarget-view.read)*.07;if(Math.abs(view.read-readTarget)<.001)view.read=readTarget;
+  spring(view,"read","rv",readTarget,6.5,rm?Infinity:step);
+  openings.forEach(function(o){spring(o,"t","v",1,6.2,rm?Infinity:step)});
+  for(var oi=openings.length-1;oi>=0;oi--)if(openings[oi].t>=1){view.base=openings[oi].planet;openings=openings.slice(oi+1);break}
+  M.forEach(function(m){m.alpha=rm?1:damp(m.alpha==null?1:m.alpha,1,5,step)});
   var Rb=wide?Math.min(W,H)*.3:Math.min(W*.26,H*.2);
   var tsc=home?1:.62,tga=home?1:.6;
-  sc=sc+(tsc-sc)*kk;ga+=(tga-ga)*kk;zoom+=(tz-zoom)*(snap?1:.12);
-  if(!rm){if(!drag){yaw+=vy;pit+=vp;vy*=.94;vp*=.94;yaw+=.1*dt*(home?1:1.6)}
-    ts+=((hov>=0||shipHov?.2:1)-ts)*.08;tt+=dt;M.forEach(function(m){m.a+=m.s*dt*ts})}
+  sc=damp(sc,tsc,4.35,step);ga=damp(ga,tga,4.35,step);zoom=damp(zoom,tz,7.7,step);
+  /* A released drag coasts on its measured velocity (radians per second) and settles. */
+  if(!rm){if(!drag){var coast=Math.exp(-3.7*dt);yaw+=vy*dt;pit+=vp*dt;vy*=coast;vp*=coast;yaw+=.1*dt*(home?1:1.6)}
+    ts=damp(ts,hov>=0||shipHov?.2:1,5,dt);tt+=dt;M.forEach(function(m){m.a+=m.s*dt*ts})}
+  M.forEach(function(m,i){m.hot=rm?(i===hov||i===page?1:0):damp(m.hot||0,i===hov||i===page?1:0,16,step)});
+  shipHot=rm?(shipHov?1:0):damp(shipHot,shipHov?1:0,14,step);
   pit=Math.max(-1.25,Math.min(1.25,pit));
   ship.position=shipPosition(tt);
   var fitted=fitScene(Rb*sc*zoom,home,wide),R=fitted[0],cx=fitted[1],cy=fitted[2];
   x.clearRect(0,0,W,H);x.lineWidth=1;x.font='500 15px "Instrument Sans",system-ui,sans-serif';
   shootingStar();
-  var area=surfaceArea(wide);if(view.amount>0)drawSky(area);
+  var area=surfaceArea(wide);frameCount++;if(view.amount>0)drawSky(area);
   var items=[];
   if(!drag&&mx>-900&&pos.length){var h2=hit(mx,my),s2=h2<0&&hitShip(mx,my);if(h2!==hov||s2!==shipHov){hov=h2;shipHov=s2;cv.style.cursor=h2>=0||s2?"pointer":"grab"}}
   /* moon positions */
   pos=M.map(function(m,i){var t=m.a,q=P(Math.cos(t)*m.r,0,Math.sin(t)*m.r,m.i,m.o,R,cx,cy);
-    var radius=((i===hov||i===page)?.075:.06)*R*q[3]*(home?1:.8)+2;
-    if(i===view.planet&&view.amount>0){q[0]=mix(q[0],area.cx,view.amount);q[1]=mix(q[1],area.horizon+area.radius,view.amount);
-      q[2]=-100;q.radius=mix(radius,area.radius,view.amount)}
-    else if(view.amount>0){var destination=skyPlanet(i,area);q[0]=mix(q[0],destination[0],view.amount);q[1]=mix(q[1],destination[1],view.amount);
+    var radius=(.06+.015*(m.hot||0))*R*q[3]*(home?1:.8)+2;
+    if(i===view.base&&view.amount>0){q.world=true;q.radius=radius}
+    else if(view.amount>0){
+      /* Sky dots glide to their new places when the arrangement changes, never jump. */
+      var destination=skyPlanet(i,area);
+      if(!m.sky||m.skyFrame!==frameCount-1)m.sky=[destination[0],destination[1]];
+      else{m.sky[0]=damp(m.sky[0],destination[0],8,step);m.sky[1]=damp(m.sky[1],destination[1],8,step)}
+      m.skyFrame=frameCount;
+      q[0]=mix(q[0],m.sky[0],view.amount);q[1]=mix(q[1],m.sky[1],view.amount);
       q.radius=mix(radius,Math.max(4,Math.min(8,area.width*.012)),view.amount)}
+    if(openings.some(function(o){return o.planet===i}))q.world=true;
     /* Reading: the other pages line up in an even arc around the globe, in page order. */
-    if(view.read>.001&&i!==view.planet){
+    if(view.read>.001&&i!==view.planet&&!q.world){
       var globe=readingGlobe(),others=M.map(function(_,j){return j}).filter(function(j){return j!==view.planet}),slot=others.indexOf(i);
       var spread=spreadOn(),span=spread?.30:.42,from=spread?1.20:1.04;
       var angle=Math.PI*(from+span*slot/Math.max(1,others.length-1)),e=ease(view.read);
@@ -900,6 +1058,7 @@ function frame(snap){
       q[1]=mix(q[1],globe.y+Math.sin(angle)*globe.ring,e);
       q.radius=mix(q.radius||radius,wide?7:6,e)}
     q.push(m);return q});
+  drawWorlds(area);
   /* Draw all scene elements from farthest to nearest so solid bodies occlude them. */
   function segment(a,b){var z=(a[2]+b[2])/2;items.push({z:z,draw:function(){
     x.strokeStyle=C.dim;x.globalAlpha=(1-view.amount)*ga*Math.max(.06,Math.min(.5,.3-z*.16));
@@ -911,13 +1070,15 @@ function frame(snap){
     belt.forEach(function(b){var a=b.a+tt*.05,q=P(Math.cos(a)*b.r,b.y,Math.sin(a)*b.r,.2,.5,R,cx,cy);
       items.push({z:q[2],draw:function(){x.fillStyle=C.dim;x.globalAlpha=(1-view.amount)*ga*Math.max(.1,Math.min(.8,.5-q[2]*.2));x.fillRect(q[0],q[1],1.4,1.4)}})});
   pos.forEach(function(p){items.push({z:p[2],draw:function(){
-    var i=M.indexOf(p[4]),hi=i===hov||i===page,r=p.radius||((hi?.075:.06)*R*p[3]*(home?1:.8)+2);
-    if(i===view.planet&&view.amount>0)drawSurface(p,r,area);else ball(p[0],p[1],r,hi?C.accent:C.fg)}})});
-  items.push({z:0,draw:function(){if(view.read>.02)return;
+    var hot=p[4].hot||0,r=p.radius||((.06+.015*hot)*R*p[3]*(home?1:.8)+2);
+    if(p.world)return;ball(p[0],p[1],r,tint(C.fg,C.accent,hot),p[4].alpha==null?1:p[4].alpha);x.globalAlpha=1}})});
+  /* The sun fades out as a page folds into the reading globe and back in as it unfolds. */
+  var sunShown=1-ease(view.read/.5);
+  items.push({z:0,draw:function(){if(sunShown<=.001)return;
     var skyX=area.left+area.width*(.13+.74*sun.progress),skyY=area.top+area.height*(.46-.34*sun.arc);
     var sunX=mix(cx,skyX,view.amount),sunY=mix(cy,skyY,view.amount),sunR=mix(R*.2,Math.min(14,area.height*.045),view.amount);
-    ball(sunX,sunY,sunR,C.accent);
-    x.globalAlpha=(1-view.amount)*ga*.35;x.strokeStyle=C.accent;x.beginPath();x.arc(sunX,sunY,sunR*1.18+Math.sin(tt*1.6)*2,0,6.2832);x.stroke()}});
+    ball(sunX,sunY,sunR,C.accent,sunShown);
+    x.globalAlpha=(1-view.amount)*ga*.35*sunShown;x.strokeStyle=C.accent;x.beginPath();x.arc(sunX,sunY,sunR*1.18+Math.sin(tt*1.6)*2,0,6.2832);x.stroke()}});
   var sp=P(ship.position[0],ship.position[1],ship.position[2],0,0,R,cx,cy),future=shipPosition(tt+.025);
   var ahead=P(future[0],future[1],future[2],0,0,R,cx,cy);
   if(view.amount>0){var coast=surfaceShip(tt,area),nextCoast=surfaceShip(tt+.025,area);
@@ -943,7 +1104,8 @@ function frame(snap){
   items.sort(function(a,b){return b.z-a.z}).forEach(function(item){item.draw()});x.globalAlpha=1;
   drawLabels(R,home);
   /* hovering the ship names what it does, in the accent like a hovered label */
-  if(shipHov){x.globalAlpha=1;x.fillStyle=C.accent;x.fillText("Fly",Math.max(12,Math.min(W-40,sp[0]+shipLength*.7)),Math.max(24,Math.min(H-16,sp[1]-shipLength*.45)))}
+  if(shipHot>.01&&shipHit){x.globalAlpha=shipHot;x.fillStyle=C.accent;
+    x.fillText("Fly",Math.max(12,Math.min(W-40,sp[0]+shipLength*.7+(1-shipHot)*-6)),Math.max(24,Math.min(H-16,sp[1]-shipLength*.45)));x.globalAlpha=1}
   /* mini demo */
   if(page===1){var w=mini.clientWidth,h=mini.clientHeight;if(w&&mini.width!==Math.round(w*dpr)){mini.width=w*dpr;mini.height=h*dpr;mg.setTransform(dpr,0,0,dpr,0,0)}
     if(w){var mcx=w/2,mcy=h/2,A=[.36*w,.3*h,.25,0,.6],B=[.27*w,.42*h,-.9,1.1,.82],pp=[A,B].map(function(o){var t=o[3]+tt*o[4],c=Math.cos(t)*o[0],s=Math.sin(t)*o[1];return[mcx+c*Math.cos(o[2])-s*Math.sin(o[2]),mcy+c*Math.sin(o[2])+s*Math.cos(o[2])]});
@@ -953,31 +1115,48 @@ function frame(snap){
       mg.fillStyle=C.dim;mg.beginPath();mg.arc(mcx,mcy,4,0,6.2832);mg.fill();
       mg.fillStyle=C.fg;mg.beginPath();mg.arc(pp[0][0],pp[0][1],3.5,0,6.2832);mg.fill();mg.fillStyle=C.accent;mg.beginPath();mg.arc(pp[1][0],pp[1][1],3.5,0,6.2832);mg.fill();
       read.textContent="Separation "+Math.round(q)+(hot?" · close approach flagged":" · clear");read.className=hot?"hot":""}}
-  if(!rm){looping=true;requestAnimationFrame(function(){frame(0)})}
+  if(!rm){looping=true;requestAnimationFrame(function(){frame(0)})}else looping=false
 }
+/* Reduced motion is followed live: turning it on parks the scene, turning it off restarts it. */
+matchMedia("(prefers-reduced-motion: reduce)").addEventListener("change",function(e){rm=e.matches;
+  if(!rm&&!looping&&!paused){last=performance.now();frame(0)}else if(rm)frame(1)});
 /* interaction */
 function pt(e){var b=cv.getBoundingClientRect();return[e.clientX-b.left,e.clientY-b.top]}
-cv.addEventListener("pointerdown",function(e){drag=true;moved=false;var p=pt(e);dx0=lx=p[0];dy0=ly=p[1];vy=vp=0;cv.setPointerCapture(e.pointerId);cv.style.cursor="grabbing"});
+/* The fling is fitted over the last 100 ms of pointer samples, not taken from the last event
+   pair: a fast throw coasts, a pause before letting go does not, and a 120 Hz mouse throws as
+   far as a 60 Hz one. While the pointer is down the scene follows it 1:1. */
+var trail=[],FLING=.004,FLING_MAX=6,FLING_WINDOW=100;
+function sample(px,py){var at=performance.now();trail.push([at,px,py]);while(trail.length>2&&at-trail[0][0]>FLING_WINDOW)trail.shift()}
+function fling(){var at=performance.now();while(trail.length&&at-trail[0][0]>FLING_WINDOW)trail.shift();
+  if(trail.length<2){vy=vp=0;return}var a=trail[0],b=trail[trail.length-1],span=Math.max(.008,(b[0]-a[0])/1000);
+  vy=Math.max(-FLING_MAX,Math.min(FLING_MAX,(b[1]-a[1])*FLING/span));vp=Math.max(-FLING_MAX,Math.min(FLING_MAX,(b[2]-a[2])*FLING/span))}
+cv.addEventListener("pointerdown",function(e){drag=true;moved=false;var p=pt(e);dx0=lx=p[0];dy0=ly=p[1];vy=vp=0;trail=[];sample(p[0],p[1]);cv.setPointerCapture(e.pointerId);cv.style.cursor="grabbing"});
 cv.addEventListener("pointermove",function(e){var p=pt(e);mx=p[0];my=p[1];
-  if(drag){if(view.amount>.8)view.pan+=(mx-lx)*.003;if(Math.hypot(mx-dx0,my-dy0)>6)moved=true;vy=(mx-lx)*.004;vp=(my-ly)*.004;yaw+=(mx-lx)*.006;pit+=(my-ly)*.006;lx=mx;ly=my}
-  else{hov=hit(mx,my);shipHov=hov<0&&hitShip(mx,my);cv.style.cursor=hov>=0||shipHov?"pointer":"grab"}
+  if(drag){if(view.amount>.8)view.pan+=(mx-lx)*.003;if(Math.hypot(mx-dx0,my-dy0)>6)moved=true;
+    sample(mx,my);yaw+=(mx-lx)*.006;pit+=(my-ly)*.006;lx=mx;ly=my}
+  else{hov=hit(mx,my);shipHov=hov<0&&hitShip(mx,my);cv.style.cursor=hov>=0||shipHov?"pointer":"grab";prewarm(hov)}
   if(rm)frame(1)});
-cv.addEventListener("pointerup",function(e){if(!drag)return;drag=false;var p=pt(e),h=hit(p[0],p[1]);cv.style.cursor=h>=0?"pointer":"grab";if(!moved&&h>=0&&h!==page){hov=-1;go(h)}else if(!moved&&h<0&&hitShip(p[0],p[1]))launch()});
+cv.addEventListener("pointerup",function(e){if(!drag)return;drag=false;fling();var p=pt(e),h=hit(p[0],p[1]);cv.style.cursor=h>=0?"pointer":"grab";if(!moved&&h>=0&&h!==page){hov=-1;go(h)}else if(!moved&&h<0&&hitShip(p[0],p[1]))launch()});
 cv.addEventListener("pointerleave",function(){if(!drag){hov=-1;shipHov=false;mx=-999}});
-cv.addEventListener("wheel",function(e){e.preventDefault();tz=Math.max(.7,Math.min(1.6,tz*Math.exp(-e.deltaY*.0012)));if(rm)frame(1)},{passive:false});
+/* Wheel and trackpad both feed a zoom target the frame eases toward. Line and page deltas
+   (some mice, Firefox) are turned into pixels first so every device zooms at the same rate. */
+cv.addEventListener("wheel",function(e){e.preventDefault();var dy=e.deltaY*(e.deltaMode===1?16:e.deltaMode===2?H:1);
+  tz=Math.max(.7,Math.min(1.6,tz*Math.exp(-dy*.0012)));if(rm)frame(1)},{passive:false});
 setInterval(function(){if(devHour!=null)return;
   var next=computeSun(new Date());
   if(Math.abs(next.vector[0]-sun.vector[0])>.02||Math.abs(next.daylight-sun.daylight)>.015){
-    sun=next;terrainMeshes={};surfaceKey="";if(rm)frame(1)}},600000);
+    sun=next;terrainMeshes={};worldEpoch++;if(rm)frame(1)}},600000);
 /* Hooks for dev.js. They do nothing until it drives them, so with the dev flag off the site
    behaves exactly as without them. */
 var devSpeed=1,devHour=null;
 function devSetHour(h){devHour=h;var at=new Date();if(h!=null)at.setHours(Math.floor(h),Math.round((h%1)*60),0,0);
-  sun=computeSun(at);terrainMeshes={};surfaceKey="";if(rm)frame(1)}
+  sun=computeSun(at);terrainMeshes={};worldEpoch++;if(rm)frame(1)}
 if(typeof window!=="undefined")window.Orbit={go:go,landOn:landOn,launch:launch,
   get page(){return page},get landing(){return landing.state},get flying(){return flying},get clock(){return devHour},
   speed:function(v){devSpeed=v},hour:devSetHour};
 /* The Ask panel turns "[the Experience planet](#page:4)" in an answer into a real jump. */
 if(typeof window!=="undefined")window.Orbit={go:go,pages:function(){return M.map(function(m){return m.n})}};
+/* A shared link opens straight onto its page, already settled. */
+(function(){var n=pageOfHash();if(n>=0){fromHistory=true;try{go(n)}finally{fromHistory=false}}})();
 rs();frame(1);
 })();

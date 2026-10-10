@@ -81,7 +81,7 @@ test('an unanswered fact says so and never invents a value', () => {
     assert.equal(fact.value, '', `${fact.id} is marked pending but has a value`);
   }
   for (const question of ['whats your favorite movie', 'what music do you listen to',
-    'what do you do in your free time', 'wheres your hometown']) {
+    'whats your favorite book', 'whats your coffee order']) {
     const reply = ask(question);
     const body = text(reply);
     assert.ok(Ask.facts().find(f => f.id === reply.fact).pending, `${question} hit an answered fact`);

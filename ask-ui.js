@@ -66,12 +66,16 @@
     return node;
   }
 
-  function scroll() { log.scrollTop = log.scrollHeight; }
+  /* New turns glide into view rather than jumping the log to its end. */
+  function scroll() {
+    if (!rm && log.scrollTo) log.scrollTo({ top: log.scrollHeight, behavior: "smooth" });
+    else log.scrollTop = log.scrollHeight;
+  }
 
   /* The question, then a placeholder the answer replaces once the model has it. */
   function exchange(question) {
     var turn = el("div", "turn");
-    turn.appendChild(el("p", "q", question));
+    turn.appendChild(el("p", "q r", question));
     var body = el("div", "a");
     turn.appendChild(body);
     log.appendChild(turn);
@@ -122,7 +126,10 @@
     if (!section || !section.getBoundingClientRect) return;
     if (section.scrollHeight <= section.clientHeight) return;
     var f = form.getBoundingClientRect(), s = section.getBoundingClientRect();
-    if (f.bottom > s.bottom) section.scrollTop += f.bottom - s.bottom + 8;
+    if (f.bottom <= s.bottom) return;
+    var by = f.bottom - s.bottom + 8;
+    if (!rm && section.scrollBy) section.scrollBy({ top: by, behavior: "smooth" });
+    else section.scrollTop += by;
   }
 
   /* Suggestions are a promise that the model can answer them, so an unanswered fact never
@@ -145,7 +152,7 @@
   }
 
   /* One place decides how long a reply is allowed to take, so the local model does not
-     answer so fast that it reads as canned and the remote one cannot hang the panel. */
+     answer so fast that it reads as canned and a model cannot hang the panel. */
   function settle(body, wait, produce) {
     busy = true;
     var started = Date.now();
@@ -168,6 +175,8 @@
     if (!question || busy) return;
     field.value = "";
     var body = exchange(question), wait = thinking(body);
+    /* The on-device model's words are only shown once ask.js has checked them; a whole reply
+       takes well under a second, so nothing is gained by showing unverified text first. */
     settle(body, wait, function () { return Ask.respond(question); });
   }
 
@@ -176,9 +185,57 @@
   /* Opening a new page clears the conversation, so returning to About starts fresh rather
      than resuming a thread the visitor has since forgotten. */
   addEventListener("orbit:page", function (e) {
-    if (e.detail === 0) return;
+    if (e.detail === 0) { wake(); return; }
     Ask.reset(); log.textContent = ""; field.value = ""; suggest(Ask.cues([]).slice(0, 5));
   });
+
+  /* ── The on-device model (ask-llm.js) ──────────────────────────────────────────────
+     One quiet line under the description. It offers the model once, shows the download as
+     the same one-pixel accent line the panel uses for thinking, then names what is answering.
+     A visitor who downloaded it before gets it back on arriving here, without being asked. */
+  var device = d.getElementById("askdevice"), offered = false, returning = false;
+
+  function line(parts) {
+    device.textContent = "";
+    parts.forEach(function (part) { device.appendChild(typeof part === "string" ? d.createTextNode(part) : part); });
+    device.hidden = false;
+  }
+
+  function show(status) {
+    if (status.state === "loading") {
+      var pct = Math.round((status.progress || 0) * 100), meter = el("i", "wait"), bar = d.createElement("b");
+      meter.appendChild(bar); bar.style.transform = "scaleX(" + (status.progress || 0) + ")";
+      line([(returning ? "Waking " : "Downloading ") + AskDevice.NAME + (pct ? " · " + pct + "%" : "\u2026"), meter]);
+      device.setAttribute("aria-busy", "true");
+    } else if (status.state === "ready") {
+      device.removeAttribute("aria-busy");
+      line(["Answers worded by " + AskDevice.NAME + ", running on this device. Nothing you type leaves it."]);
+    } else if (status.state === "failed") {
+      device.removeAttribute("aria-busy");
+      line(["The on-device model couldn\u2019t start here, so the built-in one is answering."]);
+    } else if (offered) {
+      var go = d.createElement("button");
+      go.type = "button"; go.className = "jump";
+      go.textContent = "Use a language model on this device";
+      go.addEventListener("click", function () { AskDevice.load().catch(function () {}); });
+      line([go, " (" + AskDevice.SIZE + ", once; runs privately)"]);
+    }
+  }
+
+  function wake() {
+    if (returning && AskDevice.status().state === "idle") AskDevice.load().catch(function () {});
+  }
+
+  if (device && typeof AskDevice !== "undefined") {
+    AskDevice.supported().then(function (ok) {
+      if (!ok) return;
+      return AskDevice.cached().then(function (has) {
+        returning = has; offered = !has;
+        AskDevice.on(show);
+        if (has && d.querySelector("#about.on")) wake();
+      });
+    });
+  }
 
   suggest(Ask.cues([]).slice(0, 5));
 })();

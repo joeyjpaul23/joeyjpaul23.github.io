@@ -58,7 +58,7 @@ test('only the retrieved facts are sent, never the whole profile', async () => {
 test('a question Joey has not answered never reaches the model', async () => {
   serve(() => json({ answer: 'His favourite film is Blade Runner.' }));
   Ask.configure({ proxy: PROXY }); Ask.reset();
-  for (const question of ['whats your favorite movie', 'what do you do in your free time', 'wheres your hometown']) {
+  for (const question of ['whats your favorite movie', 'whats your favorite book', 'whats your coffee order']) {
     Ask.reset();
     const reply = await Ask.respond(question);
     assert.match(text(reply), /hasn't|still blank|Not yet/i, question);
@@ -126,5 +126,5 @@ test('the network being down is not an error the visitor sees', async () => {
   global.fetch = async () => { throw new TypeError('Failed to fetch'); };
   Ask.configure({ proxy: PROXY }); Ask.reset();
   const reply = await Ask.respond('what are you working on');
-  assert.match(text(reply), /close approach/);
+  assert.match(text(reply), /collision avoidance/);
 });
