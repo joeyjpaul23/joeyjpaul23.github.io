@@ -105,6 +105,9 @@ nav button[aria-current="true"]::after{transform:scaleX(1)}
   -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 40'%3E%3Cpath d='M2 34 L22 20 L31 26 L50 8 L63 22 L72 16 L92 30 L104 24 L118 34' fill='none' stroke='black' stroke-width='1.4' stroke-linejoin='round'/%3E%3C/svg%3E") center/38% no-repeat;
   mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 40'%3E%3Cpath d='M2 34 L22 20 L31 26 L50 8 L63 22 L72 16 L92 30 L104 24 L118 34' fill='none' stroke='black' stroke-width='1.4' stroke-linejoin='round'/%3E%3C/svg%3E") center/38% no-repeat}
 .shot figcaption{margin-top:.45rem;color:var(--dim);font-size:.85rem}
+/* Until a photo arrives its frame holds the same quiet tone as a placeholder, so nothing jumps. */
+.shot img{height:auto;background:color-mix(in srgb,var(--dim) 9%,var(--bg))}
+.shot .credit{display:block;font-size:.75rem;opacity:.75;margin-top:.1rem}
 @media (max-width:819px){#tip{display:none}#panel{align-items:flex-start;top:4.5rem;bottom:auto;height:calc(100dvh - 19rem);width:calc(100% - 2.8rem)}
   #panel h2{margin-bottom:.7rem}#panel article{margin-bottom:1rem}#mini{height:85px}}
 @media (min-width:650px) and (max-height:550px){#intro{width:40vw;top:1.5rem}h1{font-size:3rem}.big{font-size:1.1rem}
