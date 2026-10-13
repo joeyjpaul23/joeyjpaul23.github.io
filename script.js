@@ -1106,17 +1106,43 @@ function frame(snap){
   /* hovering the ship names what it does, in the accent like a hovered label */
   if(shipHot>.01&&shipHit){x.globalAlpha=shipHot;x.fillStyle=C.accent;
     x.fillText("Fly",Math.max(12,Math.min(W-40,sp[0]+shipLength*.7+(1-shipHot)*-6)),Math.max(24,Math.min(H-16,sp[1]-shipLength*.45)));x.globalAlpha=1}
-  /* mini demo */
+  /* Projects: a few real satellites (sats.js) around a small Earth. */
   if(page===1){var w=mini.clientWidth,h=mini.clientHeight;if(w&&mini.width!==Math.round(w*dpr)){mini.width=w*dpr;mini.height=h*dpr;mg.setTransform(dpr,0,0,dpr,0,0)}
-    if(w){var mcx=w/2,mcy=h/2,A=[.36*w,.3*h,.25,0,.6],B=[.27*w,.42*h,-.9,1.1,.82],pp=[A,B].map(function(o){var t=o[3]+tt*o[4],c=Math.cos(t)*o[0],s=Math.sin(t)*o[1];return[mcx+c*Math.cos(o[2])-s*Math.sin(o[2]),mcy+c*Math.sin(o[2])+s*Math.cos(o[2])]});
-      mg.clearRect(0,0,w,h);mg.strokeStyle=C.dim;mg.globalAlpha=.4;[A,B].forEach(function(o){mg.beginPath();mg.ellipse(mcx,mcy,o[0],o[1],o[2],0,6.2832);mg.stroke()});
-      var q=Math.hypot(pp[0][0]-pp[1][0],pp[0][1]-pp[1][1]),hot=q<16;mg.globalAlpha=1;
-      if(hot){mg.strokeStyle=C.accent;mg.beginPath();mg.moveTo(pp[0][0],pp[0][1]);mg.lineTo(pp[1][0],pp[1][1]);mg.stroke();mg.beginPath();mg.arc((pp[0][0]+pp[1][0])/2,(pp[0][1]+pp[1][1])/2,10,0,6.2832);mg.stroke()}
-      mg.fillStyle=C.dim;mg.beginPath();mg.arc(mcx,mcy,4,0,6.2832);mg.fill();
-      mg.fillStyle=C.fg;mg.beginPath();mg.arc(pp[0][0],pp[0][1],3.5,0,6.2832);mg.fill();mg.fillStyle=C.accent;mg.beginPath();mg.arc(pp[1][0],pp[1][1],3.5,0,6.2832);mg.fill();
-      read.textContent="Separation "+Math.round(q)+(hot?" · close approach flagged":" · clear");read.className=hot?"hot":""}}
+    if(w)drawSats(w,h)}
   if(!rm){looping=true;requestAnimationFrame(function(){frame(0)})}else looping=false
 }
+/* The Projects demo: four real satellites where they are right now, propagated in the tab (sats.js).
+   The view turns slowly so the scene reads as 3D; the positions themselves are true. Heights are
+   drawn four times taller than life, or low Earth orbit would be a hairline on the disc. */
+var satTrails=null,satTrailAt=0,satReadAt=0,SAT_LIFT=4;
+function drawSats(w,h){
+  mg.clearRect(0,0,w,h);
+  var R=Math.min(h*.36,w*.22),cx=w/2,cy=h/2,spin=rm?.6:.6+tt*.05,tilt=.42,cs=Math.cos(spin),sn=Math.sin(spin),ct=Math.cos(tilt),st=Math.sin(tilt);
+  function view(p){var r=Math.hypot(p.x,p.y,p.z),k=(1+(r-6371)/6371*SAT_LIFT)/r;
+    var x=p.x*k,y=p.y*k,z=p.z*k,X=x*cs-y*sn,Y=x*sn+y*cs;return[cx+X*R,cy-(z*ct-Y*st)*R,Y*ct+z*st]}
+  /* behind the Earth, from where we stand */
+  function hidden(q){var dx=(q[0]-cx)/R,dy=(q[1]-cy)/R;return q[2]>0&&dx*dx+dy*dy<1}
+  mg.globalAlpha=1;mg.fillStyle=tint(C.bg,C.dim,.16);mg.beginPath();mg.arc(cx,cy,R,0,6.2832);mg.fill();
+  mg.strokeStyle=C.dim;mg.globalAlpha=.35;mg.lineWidth=1;mg.beginPath();
+  for(var i=0;i<=48;i++){var a=i/48*6.2832,q=view({x:Math.cos(a)*6371,y:Math.sin(a)*6371,z:0});if(i)mg.lineTo(q[0],q[1]);else mg.moveTo(q[0],q[1])}
+  mg.stroke();
+  if(typeof Sats==="undefined")return;
+  if(!Sats.ready()){Sats.load().catch(function(){});mg.globalAlpha=.7;mg.fillStyle=C.dim;mg.font='12px "Instrument Sans",system-ui,sans-serif';
+    mg.fillText("Finding satellites…",cx+R+10,cy+4);mg.globalAlpha=1;return}
+  var now=Date.now(),list=Sats.at(new Date(now));
+  if(!satTrails||now-satTrailAt>1000){satTrailAt=now;satTrails=[];for(var m=14;m>=1;m--)satTrails.push(Sats.at(new Date(now-m*60000)))}
+  list.forEach(function(s,n){var hot=s.name==="ISS",col=hot?C.accent:C.fg;
+    mg.strokeStyle=col;mg.lineWidth=1.2;
+    for(var t=1;t<satTrails.length;t++){var a=satTrails[t-1][n],b=satTrails[t][n];if(!a||!b)continue;
+      var qa=view(a.eci),qb=view(b.eci);mg.globalAlpha=(hidden(qb)?.08:.5)*t/satTrails.length;
+      mg.beginPath();mg.moveTo(qa[0],qa[1]);mg.lineTo(qb[0],qb[1]);mg.stroke()}
+    var q=view(s.eci),behind=hidden(q);mg.globalAlpha=behind?.25:1;mg.fillStyle=col;mg.beginPath();mg.arc(q[0],q[1],hot?3.4:2.6,0,6.2832);mg.fill();
+    if(!behind){mg.globalAlpha=.85;mg.font='11px "Instrument Sans",system-ui,sans-serif';mg.fillText(s.name,Math.min(w-mg.measureText(s.name).width-2,q[0]+6),q[1]-5)}});
+  mg.globalAlpha=1;
+  if(now-satReadAt>500){satReadAt=now;var iss=list.filter(function(s){return s.name==="ISS"})[0],pair=Sats.closest(list);
+    read.textContent=(iss?"ISS "+Math.round(iss.height)+" km up, "+iss.speed.toFixed(2)+" km/s":"")+
+      (pair?" · closest pair now: "+pair.a.name+" and "+pair.b.name+", "+Math.round(pair.km).toLocaleString()+" km":"");
+    read.className=""}}
 /* Reduced motion is followed live: turning it on parks the scene, turning it off restarts it. */
 matchMedia("(prefers-reduced-motion: reduce)").addEventListener("change",function(e){rm=e.matches;
   if(!rm&&!looping&&!paused){last=performance.now();frame(0)}else if(rm)frame(1)});
@@ -1151,11 +1177,15 @@ setInterval(function(){if(devHour!=null)return;
 var devSpeed=1,devHour=null;
 function devSetHour(h){devHour=h;var at=new Date();if(h!=null)at.setHours(Math.floor(h),Math.round((h%1)*60),0,0);
   sun=computeSun(at);terrainMeshes={};worldEpoch++;if(rm)frame(1)}
+/* One handle on the orbit for the other scripts: dev.js drives time and landings, the Ask panel
+   turns "[the Experience planet](#page:Experience)" into a jump, and the command line (cmd.js)
+   opens pages and roles by name and launches Flight. (These used to be two objects, and the
+   second silently replaced the first.) */
 if(typeof window!=="undefined")window.Orbit={go:go,landOn:landOn,launch:launch,
   get page(){return page},get landing(){return landing.state},get flying(){return flying},get clock(){return devHour},
-  speed:function(v){devSpeed=v},hour:devSetHour};
-/* The Ask panel turns "[the Experience planet](#page:4)" in an answer into a real jump. */
-if(typeof window!=="undefined")window.Orbit={go:go,pages:function(){return M.map(function(m){return m.n})}};
+  speed:function(v){devSpeed=v},hour:devSetHour,
+  pages:function(){return M.map(function(m){return m.n})},
+  role:function(id){if(page!==2)go(2);showRole(id||null)}};
 /* A shared link opens straight onto its page, already settled. */
 (function(){var n=pageOfHash();if(n>=0){fromHistory=true;try{go(n)}finally{fromHistory=false}}})();
 rs();frame(1);

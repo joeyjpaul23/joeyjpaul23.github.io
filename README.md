@@ -37,6 +37,9 @@ Optionally a hosted model can do the phrasing instead: deploy `worker/` (Workers
 figure the model invented all stay on the client, and anything slow or failed falls back to the
 local answer. See `worker/README.md`.
 
+## Live satellites
+The Projects demo and the `iss`/`sats` commands use `sats.js`: four real satellites (ISS, Hubble, Tiangong, Starlink-1008) propagated in the browser with satellite.js from CelesTrak's public elements, fetched at most every 12 hours with a built-in snapshot as fallback. It only loads when Projects opens or a command asks. To change the satellites, edit `LIST` (catalog number and a current two-line element set from celestrak.org).
+
 ## Hosting
 The site is static and is served free by GitHub Pages from the `joeyjpaul23.github.io` repository (`main` branch, root), at https://joeyjpaul23.github.io/. To publish a change, copy this folder into that repository and push. Pages serves it over HTTPS, which the on-device Ask model needs. Set `DEV=false` in `dev.js` first.
 
@@ -44,7 +47,7 @@ The site is static and is served free by GitHub Pages from the `joeyjpaul23.gith
 See `DESIGN.md` for the theme, colors, typography, motion rules, and how to add new pages so they match.
 
 ## Keys
-`1` to `5` open pages in order (`3` is Experience), `←`/`→` step between them, `Esc` or `0` returns home, `F` launches Flight. Each page has its own address (`#about`, `#projects`, …), so Back/Forward and shared links work. In Flight: arrows/WASD or mouse to steer, Space or click to fire, Shift to boost, `Esc` or `P` to pause. The sun/moon button at the top right switches light and dark mode.
+`/` (or ⌘K / Ctrl K, or the `>_` button) opens the command line (`cmd.js`): page and role names, `fly`, `iss`, `sats`, `theme`, `email`, `github`, `linkedin`, `help`, and anything else is asked of Ask Joey. `1` to `5` open pages in order (`3` is Experience), `←`/`→` step between them, `Esc` or `0` returns home, `F` launches Flight. Each page has its own address (`#about`, `#projects`, …), so Back/Forward and shared links work. In Flight: arrows/WASD or mouse to steer, Space or click to fire, Shift to boost, `Esc` or `P` to pause. The sun/moon button at the top right switches light and dark mode.
 
 ## Development shortcuts
 `dev.js` adds testing shortcuts, all behind one flag. Press `` ` `` (or click DEV in the corner) for the list with live stats. They use Option (Alt) plus a key:

@@ -92,6 +92,13 @@ The rules every animation follows, so the site feels the same on any screen. Che
 - **Fonts.** Preconnected, and backed by fallback faces with measured `size-adjust` ("Instrument Serif Fallback", "Instrument Sans Fallback"), so a first visit does not reflow when the web fonts swap in. Re-measure if the font stack changes.
 - **Reduced motion** is followed live in both `script.js` and `game.js`; it parks the scene, skips View Transitions and turns off entrances, hover nudges and the theme reveal.
 
+## The command line (`cmd.js`)
+
+- **One line, everywhere.** `/`, `:` or ⌘K / Ctrl K (or the `>_` button beside the theme toggle) opens it on any page except during Flight. It never opens while typing in a field. It is the site's own type in a quiet panel, not a terminal costume: it eases in from just above (220 ms) over a light veil and leaves faster (140 ms).
+- **Commands go, answers stay.** Page and role names, `fly`, `email`, `github` and `linkedin` close the line so the visitor sees the move. `iss`, `sats`, `help` and Ask Joey answers stay in the line (the last four are kept). Anything that isn't a command is a question for Ask Joey, under exactly the About page's rules and model.
+- **A combobox, properly.** Suggestions narrow as you type with the best match selected, Tab completes, ↑↓ choose, ↑ on an empty line recalls history, Esc closes and focus returns where it was. A few hidden commands (`whoami`, `sudo`, `ls`, `pwd`, `vim`, `:q`) reward the curious and are never suggested.
+- **The Projects demo is real.** Four satellites from `sats.js`, propagated in the tab from public elements, around a small Earth with 14-minute trails; heights are drawn four times taller than life and the note says so. The readout updates twice a second, not every frame.
+
 ## The orbit scene (`script.js`)
 
 Drawn on a single canvas with a hand-rolled 3D projection (no libraries).
