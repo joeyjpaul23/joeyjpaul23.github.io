@@ -7,175 +7,21 @@
 <meta name="description" content="Joel (Joey) Paul — computer science and math at Texas A&amp;M. Quantitative research at Sinn Fund, machine learning, and multi-agent collision avoidance for spacecraft.">
 <!-- Tab icon: the orbit's sun, one planet and its ring. It follows the browser's own theme,
      since that is what the tab bar is drawn in, not the site's light/dark toggle. -->
-<link rel="icon" type="image/svg+xml" href="icons/favicon-light.svg" media="(prefers-color-scheme: light)">
-<link rel="icon" type="image/svg+xml" href="icons/favicon-dark.svg" media="(prefers-color-scheme: dark)">
-<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-light-32.png" media="(prefers-color-scheme: light)">
-<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-dark-32.png" media="(prefers-color-scheme: dark)">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/svg+xml" href="./icons/favicon-light.svg" media="(prefers-color-scheme: light)">
+<link rel="icon" type="image/svg+xml" href="./icons/favicon-dark.svg" media="(prefers-color-scheme: dark)">
+<link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-light-32.png" media="(prefers-color-scheme: light)">
+<link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-dark-32.png" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
 <!-- The saved theme is applied before first paint, so a visitor who chose the opposite of their
      system setting never sees a flash of the wrong one. script.js reads the same key. -->
 <script>try{var t=localStorage.getItem("theme");if(t==="dark"||t==="light")document.documentElement.dataset.theme=t}catch(e){}</script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Instrument+Sans:wght@400;500&display=swap">
-<link rel="stylesheet" href="style.css">
+<!-- Home is deep space in either theme (src/space). Darken it before first paint so a first visit
+     never flashes the pale sky; Space.tsx takes the class back off if WebGL is not there. -->
+<script>if(!location.hash&&typeof WebGL2RenderingContext!=="undefined")document.documentElement.classList.add("space")</script>
+  <script type="module" crossorigin src="./assets/index-Di6MVHWS.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-nmXjxXv2.css">
 </head>
 <body>
-<canvas id="sky" role="img" aria-label="An interactive 3D orbit. Drag to rotate. Each orbiting label opens a page."></canvas>
-<button id="top" class="pad hide">← Back to orbit</button>
-<button id="cmdbtn" type="button" aria-label="Open the command line" title="Command line ( / )"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 8.5l4 3.5-4 3.5M12 16.5h6.5"/></svg></button>
-<button id="theme" type="button" aria-pressed="false" aria-label="Switch to dark mode">
-  <svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.3"/><path d="M12 2.6v2.6M12 18.8v2.6M2.6 12h2.6M18.8 12h2.6M5.4 5.4l1.8 1.8M16.8 16.8l1.8 1.8M18.6 5.4l-1.8 1.8M7.2 16.8l-1.8 1.8"/></svg>
-  <svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.1 14.3A8.2 8.2 0 0 1 9.7 3.9a8.4 8.4 0 1 0 10.4 10.4z"/></svg>
-</button>
-<div id="intro" class="pad">
-  <h1 class="r">Hi, I'm Joey.</h1>
-  <p class="r big" style="--i:1">I'm <span id="cyc">a student of computer science and math.</span></p>
-  <p class="r dim" style="--i:2">Drag to rotate. Click a label in orbit to open it, or catch the ship to fly. Press <kbd>/</kbd> to type a command or ask a question.</p>
-</div>
-<main id="panel" class="pad">
-  <!-- About is the one page laid out as two columns: the summary on the left, and on the right
-       a small model (ask.js) that answers questions from profile.js. Because it needs the width,
-       it folds the landscape into the corner globe the same way a sub-page does. -->
-  <section id="about">
-    <div class="bio">
-      <h2 class="r">About</h2>
-      <p class="r lede" style="--i:1">I'm a computer science and math student at Texas A&amp;M. I spend most of my time on quantitative research and machine learning: managing a portfolio at Sinn Fund, and building a collision-avoidance algorithm for spacecraft.</p>
-      <dl class="facts">
-        <div class="r" style="--i:2"><dt>Studying</dt><dd>B.S. Computer Science, minor in Mathematics · Texas A&amp;M · May 2029</dd></div>
-        <div class="r" style="--i:3"><dt>Honors</dt><dd>President's Endowed Scholar · National Scholar · National Merit Finalist</dd></div>
-        <div class="r" style="--i:4"><dt>Now</dt><dd>Portfolio Manager, Sinn Fund · College Station, Texas</dd></div>
-        <div class="r" style="--i:5"><dt>Before</dt><dd>ML and backend at Pathlight Project · Co-Director of the Maroon Fund quant desk</dd></div>
-        <div class="r" style="--i:6"><dt>Building</dt><dd>Multi-agent collision avoidance for spacecraft</dd></div>
-        <div class="r" style="--i:7"><dt>Working in</dt><dd>Python, C++, SQL, Java, machine learning</dd></div>
-        <div class="r" style="--i:8"><dt>Looking for</dt><dd>Internships and research roles</dd></div>
-      </dl>
-    </div>
-    <div class="askp">
-      <h2 class="r" style="--i:1">Ask Joey</h2>
-      <p class="r dim note" style="--i:2">A small model that answers from what Joey has actually written down — and tells you when he hasn't.</p>
-      <p id="askdevice" class="dim note device" aria-live="polite" hidden></p>
-      <div id="asklog" role="log" aria-live="polite" aria-label="Answers"></div>
-      <ul id="askcues" class="cues"></ul>
-      <form id="askform" autocomplete="off">
-        <input id="askq" type="text" placeholder="Ask about Joey&#8230;" aria-label="Ask a question about Joey" maxlength="300">
-        <button type="submit" aria-label="Ask">&#8594;</button>
-      </form>
-    </div>
-  </section>
-  <section>
-    <h2 class="r">Projects</h2>
-    <article class="r" style="--i:1">
-      <h3>Satellite collision avoidance <small>Multi-agent systems, orbital mechanics · August 2026 to present</small></h3>
-      <p>An independent implementation exploring multi-agent collision avoidance for spacecraft when they can only communicate intermittently.</p>
-      <canvas id="mini" aria-hidden="true"></canvas>
-      <p id="read" aria-live="off">Live: the ISS, Hubble, Tiangong and a Starlink, where they are right now.</p>
-      <p class="satnote">Four real satellites, propagated in your browser from today's public orbital elements (CelesTrak). Heights drawn four times taller than life.</p>
-      <p>I'm building a simulation environment to study orbital maneuvers, partial information and coordination between spacecraft, and investigating SDec-POMDP-based planning and policy search, with evaluation planned against centralized and decentralized strategies.</p>
-    </article>
-    <article class="r" style="--i:2">
-      <h3>Hudson River Trading puzzle competition <small>5th place team · February 2026</small></h3>
-      <p>With Aggie Coding Club, Hudson River Trading hosted a competition of puzzles solved through math and creative thinking. Out of more than 30 teams and 200 people, my team placed 5th, solving 5 puzzles.</p>
-    </article>
-  </section>
-  <!-- Experience is third here because it is third in M (script.js); its orbit sits second from the sun.
-       Each role is a sub-page: .sub articles swap in for #xp-list inside this section.
-       To add a photo, replace a <div class="ph"> with <img src="images/…" alt="…">; it takes the same 3:2 frame. -->
-  <section>
-    <div id="xp-list">
-      <h2 class="r">Experience</h2>
-      <ul class="xp">
-        <li class="r" style="--i:1"><button type="button" data-role="sinn">Sinn Fund<span>Portfolio Manager · 2026 to present</span></button></li>
-        <li class="r" style="--i:2"><button type="button" data-role="pathlight">Pathlight Project<span>Machine Learning and Backend Engineer · Summer 2026</span></button></li>
-        <li class="r" style="--i:3"><button type="button" data-role="maroon">Maroon Fund<span>Co-Director, Quant Trading Desk · 2025 to 2026</span></button></li>
-      </ul>
-    </div>
-    <article class="sub" id="xp-sinn" hidden>
-      <button type="button" class="crumb r" data-role="">← Experience</button>
-      <h2 class="r" style="--i:1" tabindex="-1">Sinn Fund</h2>
-      <p class="r role" style="--i:2">Portfolio Manager</p>
-      <p class="r meta" style="--i:2">College Station, Texas · May 2026 to present</p>
-      <div class="body">
-        <p class="r" style="--i:3">I'm a portfolio manager at Sinn Fund, which manages $10–15M in assets.</p>
-        <p class="r" style="--i:4">I was selected after rigorous interview cycles, and I was promoted to portfolio manager in my first semester.</p>
-        <figure class="shot r" style="--i:5"><img src="images/sinn-trading-room.jpg" width="1600" height="900" loading="lazy" decoding="async" alt="Students at workstations in the Phillips 66 Trading Room, seen through its glass wall under a scrolling stock ticker"><figcaption>The Phillips 66 Trading Room in the Wehner Building, Mays Business School <span class="credit">Photo: Mays Business School</span></figcaption></figure>
-        <p class="r" style="--i:6">My work is research. I study quantitative trading strategies, testing them across multiple years of backtests to optimize returns.</p>
-      </div>
-      <p class="r tags" style="--i:7">Finance · Python · Quantitative research · Market analysis</p>
-      <p class="r next" style="--i:8"><button type="button" data-role="pathlight">Next: Pathlight Project →</button></p>
-    </article>
-    <article class="sub" id="xp-pathlight" hidden>
-      <button type="button" class="crumb r" data-role="">← Experience</button>
-      <h2 class="r" style="--i:1" tabindex="-1">Pathlight Project</h2>
-      <p class="r role" style="--i:2">Machine Learning and Backend Engineer</p>
-      <p class="r meta" style="--i:2">San Francisco, California · May to August 2026</p>
-      <div class="body">
-        <p class="r" style="--i:3">Pathlight builds PATH, a voice-first assistant for blind and low-vision people. You speak naturally, and it reads, summarizes, searches, drafts and replies to email and manages your calendar across Gmail, Outlook, Google Calendar and iCloud Mail, without navigating every screen by hand.</p>
-        <p class="r" style="--i:4">The company was founded by Ariyan Patel of Yale and Kushal Patel and Ronak Saramya of Stanford. It began as a wearable navigation device and grew into software, and its features are co-designed and tested with blind and low-vision users.</p>
-        <figure class="shot r" style="--i:5"><img src="images/pathlight-hacker-house.jpg" width="1280" height="857" loading="lazy" decoding="async" alt="Joey at a desk in the Yale Hacker House, with Ariyan Patel in the doorway and a whiteboard sketching the harness"><figcaption>With Ariyan Patel at the Yale Hacker House, San Francisco <span class="credit">Photo: The Wall Street Journal</span></figcaption></figure>
-        <p class="r" style="--i:6">I spent the summer with the team in the Yale Hacker House in San Francisco. My main work was the harness behind the assistant: the system that takes what someone says, works out the task, and carries it through with low latency and high accuracy.</p>
-        <p class="r" style="--i:7">I worked on the system's architecture and fine-tuned language models to improve their performance, efficiency and accuracy.</p>
-        <p class="r" style="--i:8">Accuracy matters more when you can't check the screen. Before PATH sends or changes anything important, it reads back the key details, and when a request is unclear it asks instead of guessing.</p>
-        <figure class="shot r" style="--i:9"><div class="ph" role="img" aria-label="Photo to come"></div><figcaption>PATH on iPhone</figcaption></figure>
-        <p class="r" style="--i:10">I also built UI features for both the mobile and desktop apps, designed around a blind and low-vision audience.</p>
-        <p class="r" style="--i:11">The company is now in the process of being sold. <a href="https://www.pathlightproj.com/">pathlightproj.com</a></p>
-      </div>
-      <p class="r tags" style="--i:12">LLM tuning · Data engineering · Machine learning</p>
-      <p class="r next" style="--i:13"><button type="button" data-role="maroon">Next: Maroon Fund →</button></p>
-    </article>
-    <article class="sub" id="xp-maroon" hidden>
-      <button type="button" class="crumb r" data-role="">← Experience</button>
-      <h2 class="r" style="--i:1" tabindex="-1">Maroon Fund</h2>
-      <p class="r role" style="--i:2">Co-Director of the Quant Trading Desk and Quantitative Analyst</p>
-      <p class="r meta" style="--i:2">College Station, Texas · August 2025 to May 2026</p>
-      <div class="body">
-        <p class="r" style="--i:3">Maroon Fund is the fastest-growing investment fund at Texas A&amp;M. I earned my position through rigorous application and interview cycles.</p>
-        <p class="r" style="--i:4">On the quant trading desk, I worked on multiple models built on dip-detection strategies and machine learning.</p>
-        <p class="r" style="--i:6">As co-director, I oversaw all of the desk's analysts to make sure the models held up, and I managed the desk.</p>
-      </div>
-      <p class="r tags" style="--i:7">Financial modeling · Python · Data structures and algorithms · Market trends · XGBoost · Machine learning</p>
-      <p class="r next" style="--i:8"><button type="button" data-role="sinn">Next: Sinn Fund →</button></p>
-    </article>
-  </section>
-  <section>
-    <h2 class="r">Skills</h2>
-    <ul class="skl">
-      <li class="r" style="--i:1">Python<span>Quantitative research, backtesting and machine learning.</span></li>
-      <li class="r" style="--i:2">Machine learning<span>XGBoost, LLM fine-tuning and data engineering.</span></li>
-      <li class="r" style="--i:3">Quantitative research<span>Trading strategies, backtesting and market analysis.</span></li>
-      <li class="r" style="--i:4">Multi-agent systems<span>Numerical optimization, orbital mechanics and stochastic modeling.</span></li>
-      <li class="r" style="--i:5">C++, Java and SQL<span>Data structures, algorithms and program design.</span></li>
-      <li class="r" style="--i:6">Web<span>JavaScript, React, HTML/CSS and Tailwind.</span></li>
-      <li class="r" style="--i:7">Also<span>Linux, Fortran 95, Power BI, LaTeX and Office.</span></li>
-    </ul>
-  </section>
-  <section>
-    <h2 class="r">Contact</h2>
-    <p class="r" style="--i:1"><a href="mailto:joeyjpaul@tamu.edu">joeyjpaul@tamu.edu</a></p>
-    <p class="r dim gap" style="--i:2"><a href="https://github.com/joeyjpaul23" target="_blank" rel="noopener">GitHub</a> and <a href="https://www.linkedin.com/in/joeyjosephpaul23/" target="_blank" rel="noopener">LinkedIn</a></p>
-  </section>
-</main>
-<p id="tip" class="hide">Choose a planet in the sky to keep exploring.</p>
-<div id="flight" tabindex="-1" role="application" aria-label="Flight, a small game. Steer Starship through the belt." hidden>
-  <canvas id="fcv" aria-hidden="true"></canvas>
-  <button id="fback" class="pad" type="button">← Back to orbit</button>
-  <div id="fscores" aria-hidden="true"><p id="fscore">0</p><p id="fbest" class="dim">Best 0</p></div>
-  <div id="froute"><span id="fname" class="dim"></span><i><b id="fbar"></b></i></div>
-  <div id="fstat" class="pad"><div id="fhull" role="img" aria-label="Hull 3 of 3"><i></i><i></i><i></i></div><i id="fboostline"><b id="fboostbar"></b></i></div>
-  <button id="fboost" type="button">Boost</button>
-  <div id="fcard" class="pad hide" aria-live="polite"></div>
-</div>
-<script src="game.js"></script>
-<script src="script.js"></script>
-<!-- The About page's model: facts, the engine that reads them, and the panel. -->
-<script src="profile.js"></script>
-<script src="ask.js"></script>
-<script src="sats.js"></script>
-<script src="ask-llm.js"></script>
-<script src="ask-ui.js"></script>
-<!-- The command line: / anywhere. -->
-<script src="cmd.js"></script>
-<!-- Development shortcuts; remove this line or set DEV=false in dev.js before shipping. -->
-<script src="dev.js"></script>
+<div id="root"></div>
 </body>
 </html>

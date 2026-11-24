@@ -1,13 +1,23 @@
 # Joey's portfolio
 
+The published site is the React + Vite + TypeScript portfolio. `index.html` loads the
+compiled application in `assets/`; its plain JavaScript engines live in `engine/`.
+The older root scripts and their tests remain as the original no-build version.
+
 A single-page portfolio with an interactive 3D orbit. Drag to rotate, scroll to zoom, and click a planet to open its landscape. Each destination has its own climate: a lake and cabin, a ridged basin, a stand of trees, or a quiet shore. The light follows your own clock, so the scene is lit for whatever hour you visit. The other destinations remain clickable in the sky; “Back to orbit” returns to the solar system.
 
 Catch Starship in the orbit (or press `F`) to fly it: a small game where you ride the ship out through the belt to each page's world, dodging rock, flying through rings and clearing drones. Arrive at a world and you can land on that page.
 
 ## Run
-Open `index.html` in a browser. No build step or dependencies (fonts load from Google Fonts).
+Serve the repository over HTTP (for example, `python3 -m http.server 8000`) and open `http://localhost:8000`. The published files are already built.
 
 ## Edit
+For the current app, edit the React source in the `joey-portfolio-morph` development
+project, run `npm test` and `npm run build`, then copy the contents of `dist/` into
+this repository. Keep `.nojekyll` so GitHub Pages serves the assets directly.
+Set `DEV=false` in `public/engine/dev.js` before building.
+
+The following file pointers describe the original no-build version:
 - Page text: `index.html` (About, Projects, Experience, Skills, Contact sections)
 - **What Ask Joey knows: `profile.js`.** Facts, not written answers — add one and every phrasing of that question starts working. The `pending` block near the bottom is the list Joey still has to fill in; an empty `value` makes the panel say so rather than invent something.
 - Content follows the 2026–27 resume. Photos on the Experience sub-pages are still placeholders (`.ph`); swap in an `<img>` to add one.
@@ -41,7 +51,7 @@ local answer. See `worker/README.md`.
 The Projects demo and the `iss`/`sats` commands use `sats.js`: four real satellites (ISS, Hubble, Tiangong, Starlink-1008) propagated in the browser with satellite.js from CelesTrak's public elements, fetched at most every 12 hours with a built-in snapshot as fallback. It only loads when Projects opens or a command asks. To change the satellites, edit `LIST` (catalog number and a current two-line element set from celestrak.org).
 
 ## Hosting
-The site is static and is served free by GitHub Pages from the `joeyjpaul23.github.io` repository (`main` branch, root), at https://joeyjpaul23.github.io/. To publish a change, copy this folder into that repository and push. Pages serves it over HTTPS, which the on-device Ask model needs. Set `DEV=false` in `dev.js` first.
+The site is static and is served free by GitHub Pages from the `joeyjpaul23.github.io` repository (`main` branch, root), at https://joeyjpaul23.github.io/. To publish a change, copy the React build output (`dist/` contents) into the repository root and push to `main`. Pages serves it over HTTPS, which the on-device Ask model needs. Set `DEV=false` in `public/engine/dev.js` in the development project before building.
 
 ## Design
 See `DESIGN.md` for the theme, colors, typography, motion rules, and how to add new pages so they match.
