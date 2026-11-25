@@ -56,6 +56,22 @@ The site is static and is served free by GitHub Pages from the `joeyjpaul23.gith
 ## Design
 See `DESIGN.md` for the theme, colors, typography, motion rules, and how to add new pages so they match.
 
+## Rework preview (`next/`)
+`next/` is a no-build preview of a reworked design, served at `/next/` next to the published site and
+marked `noindex`. The whole window is one ASCII sky drawn on a 2D canvas: on Home a large sun sits off the
+right edge with the five worlds on dotted orbits, and each page shows its world large with the other four in
+its sky. Every world has its own surface (lake world, cratered desert, ice, a ringed gas giant, a dusk world
+with a moon), baked once into a small texture and then lit and rotated each frame.
+
+- `next/scene.js`: the renderer. Surfaces are the `MAT` functions; Home's layout is `PLANETS` and `orbit()`.
+- `next/app.js`: page addresses (`#about`, …), keys (`1`–`5`, `←`/`→`, `Esc`/`0`), where each world sits per
+  page (`WIDE`), the paper/dark theme, Ask Joey, the Experience reader and the Contact signature.
+- `next/next.css`: colours as tokens for both themes; under 820px the sky becomes a band across the top.
+
+It reuses `engine/profile.js` and `engine/ask.js` for Ask Joey and `engine/sats.js` for the live satellites
+on Projects (if those cannot load, the figure says its orbits are illustrative). Flight, the command line,
+the on-device model and landing are not ported to the preview yet.
+
 ## Keys
 `/` (or ⌘K / Ctrl K, or the `>_` button) opens the command line (`cmd.js`): page and role names, `fly`, `iss`, `sats`, `theme`, `email`, `github`, `linkedin`, `help`, and anything else is asked of Ask Joey. `1` to `5` open pages in order (`3` is Experience), `←`/`→` step between them, `Esc` or `0` returns home, `F` launches Flight. Each page has its own address (`#about`, `#projects`, …), so Back/Forward and shared links work. In Flight: arrows/WASD or mouse to steer, Space or click to fire, Shift to boost, `Esc` or `P` to pause. The sun/moon button at the top right switches light and dark mode.
 

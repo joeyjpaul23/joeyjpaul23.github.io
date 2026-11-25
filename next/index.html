@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en" data-page="orbit">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Joel Paul — Computer Science &amp; Math</title>
+<meta name="description" content="Joel (Joey) Paul — computer science and math at Texas A&amp;M. Quantitative research at Sinn Fund, machine learning, and multi-agent collision avoidance for spacecraft.">
+<!-- A preview of the reworked design; the published site is the one at the root. -->
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/svg+xml" href="../icons/favicon-light.svg" media="(prefers-color-scheme: light)">
+<link rel="icon" type="image/svg+xml" href="../icons/favicon-dark.svg" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<!-- Theme before first paint, so a visitor who chose paper never sees a flash of dark. -->
+<script>
+try {
+  var t = localStorage.getItem("next-theme");
+  if (t !== "dark" && t !== "paper") t = matchMedia("(prefers-color-scheme: light)").matches ? "paper" : "dark";
+  document.documentElement.dataset.theme = t;
+} catch (e) { document.documentElement.dataset.theme = "dark"; }
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&amp;display=swap">
+<link rel="stylesheet" href="next.css">
+</head>
+<body>
+
+<div id="sky" aria-hidden="true"></div>
+
+<header class="top">
+  <p class="crumb"><a href="#" class="name">JOEL PAUL</a> <span class="sep">/</span> <span id="where">orbit</span></p>
+  <div class="tools">
+    <a href="#" class="esc" id="esc">[esc] orbit</a>
+    <button type="button" id="theme" aria-label="Switch theme">[*]</button>
+  </div>
+</header>
+
+<main id="panel">
+
+  <section id="orbit" class="page" aria-label="Home">
+    <div class="col center">
+      <p class="prompt">$ whoami</p>
+      <h1 class="hello">
+        <span class="hi">Hi, I'm</span>
+        <span class="sr">Joey.</span>
+<pre class="figlet" aria-hidden="true">     ██╗ ██████╗ ███████╗██╗   ██╗
+     ██║██╔═══██╗██╔════╝╚██╗ ██╔╝
+     ██║██║   ██║█████╗   ╚████╔╝
+██   ██║██║   ██║██╔══╝    ╚██╔╝
+╚█████╔╝╚██████╔╝███████╗   ██║   <b>██╗</b>
+ ╚════╝  ╚═════╝ ╚══════╝   ╚═╝   <b>╚═╝</b></pre>
+      </h1>
+      <p class="lede">Computer science + math at Texas A&amp;M. I work on quantitative research, machine learning, and collision avoidance for spacecraft.</p>
+      <p class="help keys">Pick a world to explore, or press <kbd>1</kbd>–<kbd>5</kbd>. <kbd>Esc</kbd> comes back here.</p>
+      <p class="help tap">Tap a world to explore it.</p>
+    </div>
+  </section>
+
+  <section id="about" class="page" aria-labelledby="about-h" hidden>
+    <div class="col wide">
+      <div class="half">
+        <p class="prompt"><span>~/about</span> $ cat about.txt</p>
+        <h2 id="about-h" tabindex="-1"><span class="slash">/</span> About</h2>
+        <p>I'm a computer science and math student at Texas A&amp;M. I spend most of my time on quantitative research and machine learning: managing a portfolio at Sinn Fund, and building a collision-avoidance algorithm for spacecraft.</p>
+        <dl class="facts">
+          <div><dt>studying</dt><dd>B.S. Computer Science, minor in Mathematics · Texas A&amp;M · May 2029</dd></div>
+          <div><dt>honors</dt><dd>President's Endowed Scholar · National Scholar · <em>National Merit Finalist</em></dd></div>
+          <div><dt>now</dt><dd><em>Portfolio Manager</em>, Sinn Fund · College Station, Texas</dd></div>
+          <div><dt>before</dt><dd>ML and backend at Pathlight Project · Co-Director of the Maroon Fund quant desk</dd></div>
+          <div><dt>building</dt><dd>Multi-agent <em>collision avoidance</em> for spacecraft</dd></div>
+          <div><dt>working in</dt><dd>Python, C++, SQL, Java, machine learning</dd></div>
+          <div><dt>looking for</dt><dd>Internships and research roles</dd></div>
+        </dl>
+      </div>
+      <div class="half ask">
+        <p class="prompt"><span>~/about</span> $ ask</p>
+        <h2><span class="slash">/</span> Ask Joey</h2>
+        <p class="dim">A small model that answers from what Joey has actually written down — and tells you when he hasn't.</p>
+        <div id="asklog" class="log" aria-live="polite" aria-label="Answers"></div>
+        <ul id="askcues" class="cues"></ul>
+        <form id="askform" autocomplete="off">
+          <label for="askq">›</label>
+          <input id="askq" type="text" placeholder="Ask about Joey…" aria-label="Ask a question about Joey" maxlength="300">
+          <button type="submit">[ASK]</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <section id="projects" class="page" aria-labelledby="projects-h" hidden>
+    <div class="col">
+      <p class="prompt"><span>~/projects</span> $ ls -t</p>
+      <h2 id="projects-h" tabindex="-1"><span class="slash">/</span> Projects</h2>
+      <article>
+        <h3>Satellite collision avoidance</h3>
+        <p class="meta">Multi-agent systems, orbital mechanics · August 2026 to present</p>
+        <p>An independent implementation exploring multi-agent collision avoidance for spacecraft when they can only communicate intermittently.</p>
+        <figure class="sats">
+          <div id="satbox" class="satbox"></div>
+          <figcaption id="satnote"><span class="live">Live:</span> the ISS, Hubble, Tiangong and a Starlink, where they are right now. Four real satellites, propagated in your browser from today's public orbital elements (CelesTrak). Heights drawn four times taller than life.</figcaption>
+        </figure>
+        <p>I'm building a simulation environment to study orbital maneuvers, partial information and coordination between spacecraft, and investigating SDec-POMDP-based planning and policy search, with evaluation planned against centralized and decentralized strategies.</p>
+      </article>
+      <article>
+        <h3>Hudson River Trading puzzle competition</h3>
+        <p class="meta">5th place team · February 2026</p>
+        <p>With Aggie Coding Club, Hudson River Trading hosted a competition of puzzles solved through math and creative thinking. Out of more than 30 teams and 200 people, my team placed 5th, solving 5 puzzles.</p>
+      </article>
+    </div>
+  </section>
+
+  <section id="experience" class="page" aria-labelledby="experience-h" hidden>
+    <div class="col">
+      <p class="prompt"><span>~/experience</span> $ ls -l</p>
+      <h2 id="experience-h" tabindex="-1"><span class="slash">/</span> Experience</h2>
+      <ul class="roles">
+        <li><button type="button" data-role="sinn" aria-pressed="true"><span><b>Sinn Fund</b><small>Portfolio Manager · 2026 to present</small></span><i>→</i></button></li>
+        <li><button type="button" data-role="pathlight" aria-pressed="false"><span><b>Pathlight Project</b><small>Machine Learning and Backend Engineer · Summer 2026</small></span><i>→</i></button></li>
+        <li><button type="button" data-role="maroon" aria-pressed="false"><span><b>Maroon Fund</b><small>Co-Director, Quant Trading Desk · 2025 to 2026</small></span><i>→</i></button></li>
+      </ul>
+
+      <article class="role" id="role-sinn">
+        <p class="prompt"><span>~/experience</span> $ cat sinn-fund.md</p>
+        <h3>Sinn Fund</h3>
+        <p class="position">Portfolio Manager</p>
+        <p class="meta">College Station, Texas · May 2026 to present</p>
+        <p>I'm a portfolio manager at Sinn Fund, which manages $10–15M in assets.</p>
+        <p>I was selected after rigorous interview cycles, and I was promoted to portfolio manager in my first semester.</p>
+        <p>My work is research. I study quantitative trading strategies, testing them across multiple years of backtests to optimize returns.</p>
+        <p class="meta">Finance · Python · Quantitative research · Market analysis</p>
+        <button type="button" class="next" data-role="pathlight">Next: Pathlight Project →</button>
+      </article>
+
+      <article class="role" id="role-pathlight" hidden>
+        <p class="prompt"><span>~/experience</span> $ cat pathlight.md</p>
+        <h3>Pathlight Project</h3>
+        <p class="position">Machine Learning and Backend Engineer</p>
+        <p class="meta">San Francisco, California · May to August 2026</p>
+        <p>Pathlight builds PATH, a voice-first assistant for blind and low-vision people. You speak naturally, and it reads, summarizes, searches, drafts and replies to email and manages your calendar across Gmail, Outlook, Google Calendar and iCloud Mail, without navigating every screen by hand.</p>
+        <p>The company was founded by Ariyan Patel of Yale and Kushal Patel and Ronak Saramya of Stanford. It began as a wearable navigation device and grew into software, and its features are co-designed and tested with blind and low-vision users.</p>
+        <p>I spent the summer with the team in the Yale Hacker House in San Francisco. My main work was the harness behind the assistant: the system that takes what someone says, works out the task, and carries it through with low latency and high accuracy.</p>
+        <p>I worked on the system's architecture and fine-tuned language models to improve their performance, efficiency and accuracy.</p>
+        <p>Accuracy matters more when you can't check the screen. Before PATH sends or changes anything important, it reads back the key details, and when a request is unclear it asks instead of guessing.</p>
+        <p>I also built UI features for both the mobile and desktop apps, designed around a blind and low-vision audience.</p>
+        <p>The company is now in the process of being sold. <a href="https://www.pathlightproj.com/">pathlightproj.com</a></p>
+        <p class="meta">LLM tuning · Data engineering · Machine learning</p>
+        <button type="button" class="next" data-role="maroon">Next: Maroon Fund →</button>
+      </article>
+
+      <article class="role" id="role-maroon" hidden>
+        <p class="prompt"><span>~/experience</span> $ cat maroon-fund.md</p>
+        <h3>Maroon Fund</h3>
+        <p class="position">Co-Director of the Quant Trading Desk and Quantitative Analyst</p>
+        <p class="meta">College Station, Texas · August 2025 to May 2026</p>
+        <p>Maroon Fund is the fastest-growing investment fund at Texas A&amp;M. I earned my position through rigorous application and interview cycles.</p>
+        <p>On the quant trading desk, I worked on multiple models built on dip-detection strategies and machine learning.</p>
+        <p>As co-director, I oversaw all of the desk's analysts to make sure the models held up, and I managed the desk.</p>
+        <p class="meta">Financial modeling · Python · Data structures and algorithms · Market trends · XGBoost · Machine learning</p>
+        <button type="button" class="next" data-role="sinn">Next: Sinn Fund →</button>
+      </article>
+    </div>
+  </section>
+
+  <section id="skills" class="page" aria-labelledby="skills-h" hidden>
+    <div class="col">
+      <p class="prompt"><span>~/skills</span> $ ls</p>
+      <h2 id="skills-h" tabindex="-1"><span class="slash">/</span> Skills</h2>
+      <dl class="skills">
+        <div><dt>Python</dt><dd>Quantitative research, backtesting and machine learning.</dd></div>
+        <div><dt>Machine learning</dt><dd>XGBoost, LLM fine-tuning and data engineering.</dd></div>
+        <div><dt>Quantitative research</dt><dd>Trading strategies, backtesting and market analysis.</dd></div>
+        <div><dt>Multi-agent systems</dt><dd>Numerical optimization, orbital mechanics and stochastic modeling.</dd></div>
+        <div><dt>C++, Java and SQL</dt><dd>Data structures, algorithms and program design.</dd></div>
+        <div><dt>Web</dt><dd>JavaScript, React, HTML/CSS and Tailwind.</dd></div>
+        <div><dt>Also</dt><dd>Linux, Fortran 95, Power BI, LaTeX and Office.</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <section id="contact" class="page" aria-labelledby="contact-h" hidden>
+    <div class="col center">
+      <p class="prompt"><span>~/contact</span> $ finger joey</p>
+      <h2 id="contact-h" tabindex="-1"><span class="slash">/</span> Contact</h2>
+      <dl class="finger">
+        <dt>name</dt><dd>Joel Paul</dd>
+        <dt>office</dt><dd>College Station, Texas</dd>
+        <dt>mail</dt><dd><a href="mailto:joeyjpaul@tamu.edu">joeyjpaul@tamu.edu</a> <button type="button" id="copy">[copy]</button></dd>
+        <dt>elsewhere</dt><dd><a href="https://github.com/joeyjpaul23" target="_blank" rel="noopener">GitHub</a> and <a href="https://www.linkedin.com/in/joeyjosephpaul23/" target="_blank" rel="noopener">LinkedIn</a></dd>
+      </dl>
+      <button type="button" class="sig" id="sig" aria-label="Joey's signature. Sign again.">
+<pre aria-hidden="true" id="sigart"></pre>
+        <span>Joel Paul / College Station, Texas</span>
+      </button>
+    </div>
+  </section>
+
+</main>
+
+<nav class="tabs" aria-label="Worlds">
+  <a href="#" data-to="orbit"><span>0 /</span> orbit</a>
+  <a href="#about" data-to="about"><span>1 /</span> about</a>
+  <a href="#projects" data-to="projects"><span>2 /</span> projects</a>
+  <a href="#experience" data-to="experience"><span>3 /</span> experience</a>
+  <a href="#skills" data-to="skills"><span>4 /</span> skills</a>
+  <a href="#contact" data-to="contact"><span>5 /</span> contact</a>
+</nav>
+
+<script src="../engine/profile.js"></script>
+<script src="../engine/ask.js"></script>
+<script src="../engine/sats.js"></script>
+<script src="scene.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
